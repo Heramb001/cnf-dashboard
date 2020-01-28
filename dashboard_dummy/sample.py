@@ -90,6 +90,8 @@ body = dbc.Container([
                                                                ],
                                                  'layout':{
                                                               'title':'Input Graph',
+                                                              'xaxis':{'title':'X'},
+                                                              'yaxis':{'title':'Q2'},
                                                               'clickmode': 'event+select'
                                                           }
                                                       })
