@@ -98,7 +98,7 @@ body = dbc.Container([
                                                  'data':[{'x':data['X'],'y':data['Q2'], 'mode':'markers', 'name':'data 1', 'marker': {'size': 8}},
                                                                ],
                                                  'layout':{
-                                                              'title':'Input Data Graph',
+                                                              'title':'Input Data Graph 1',
                                                               'xaxis':{'title':'X'},
                                                               'yaxis':{'title':'Q2'},
                                                               'clickmode': 'event+select'
