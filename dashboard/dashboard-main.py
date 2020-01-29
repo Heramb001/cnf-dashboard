@@ -16,6 +16,9 @@ import pandas as pd
 import plotly.graph_objs as go
 
 
+#--- load custom libraries.
+from mlutils import backwardPredict
+
 #-- Loading the data
 X = np.load("data/X.npy")
 Q2 = np.load("data/Q2.npy")
@@ -98,7 +101,7 @@ body = dbc.Container([
                                                  'data':[{'x':data['X'],'y':data['Q2'], 'mode':'markers', 'name':'data 1', 'marker': {'size': 8}},
                                                                ],
                                                  'layout':{
-                                                              'title':'Input Data Graph',
+                                                              'title':'Input Data Graph 1 (X,Q2)',
                                                               'xaxis':{'title':'X'},
                                                               'yaxis':{'title':'Q2'},
                                                               'clickmode': 'event+select'
@@ -179,27 +182,34 @@ def update_output(n_clicks, str_dict, f_value):
 #--- callback to update the output graph
 @app.callback(Output('output-graph-g2', 'figure'),
               [Input('output-state', 'children')],
-              [State('model-select','value')])
-def update_graph_scatter(updated_data, model_select):
+              [State('model-select','value'),
+               State('f-value-slider', 'value')])
+def update_graph_scatter(updated_data, model_select, f_value):
     if updated_data is not None:
         if model_select != 'null':
-            datadict = eval(updated_data)
-            clusters = cluster_data(data, ['X','Q2_new'], model_select)
+            fname = 'test_backward'
+            #modelname = 'model_1'
+            #datadict = eval(updated_data)
+            
+            nn_pred = backwardPredict(fname, model_select, float(f_value))
+            #(data, ['X0','y_new'], model_select)
             data = go.Scatter(
-                    x=data_b['X'],
-                    y=data_b['Q2_new'],
-                    name='Scatter',
+                    x=np.arange(10),
+                    y=nn_pred.mean(axis=0),
+                    name='pred mean',
                     showlegend = True,
-                    marker={
-                            'color':clusters['result']
-                            },
-                    mode= 'markers'
+                    error_y=dict(
+                            type='data', # value of error bar given in data coordinates,
+                            color='orange',
+                            array=nn_pred.std(axis = 0)*80,
+                            visible=True
+                            )
                     )
-            return {'data': [data],'layout' : go.Layout({'title':'Output Graph'})}
+            return {'data': [data],'layout' : go.Layout({'title':'Predicted parameters with '+f_value+' noise', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
         else:
-            return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected'})} #--- throw exception saying select model
+            return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})} #--- throw exception saying select model
     else:
-        return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data'})}
+        return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
 
 if __name__ == '__main__':
     app.run_server(debug = False)

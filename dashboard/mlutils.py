@@ -42,14 +42,14 @@ def addNoise(data, alpha, num_features):
     return predList
 
 
-def backwardPredict(fname, model, ):
+def backwardPredict(fname, model, noise_value):
 # load xsec file
     xsec = np.load('mldata/%s.npy'%fname)
     ml = load_model(model) 
 
 
     # add 0.05 noise 
-    predList = addNoise(xsec, 0.05, 342) 
+    predList = addNoise(xsec, noise_value, 342) 
 
     # make the prediction
     pred = ml.predict(predList)
