@@ -192,8 +192,8 @@ def update_graph_scatter(updated_data, model_select, f_value):
             #datadict = eval(updated_data)
             
             nn_pred = backwardPredict(fname, model_select, float(f_value))
-            #(data, ['X0','y_new'], model_select)
-            data = go.Scatter(
+            figure_g = go.Figure(
+                data = go.Scatter(
                     x=np.arange(10),
                     y=nn_pred.mean(axis=0),
                     name='pred mean',
@@ -205,11 +205,30 @@ def update_graph_scatter(updated_data, model_select, f_value):
                             visible=True
                             )
                     )
-            return {'data': [data],'layout' : go.Layout({'title':'Predicted parameters with '+f_value+' noise', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
+                )
+            #(data, ['X0','y_new'], model_select)
+            figure_g.update_layout(
+                title='Predicted parameters with '+str(f_value)+' noise',
+                xaxis_title="Parameters",
+                yaxis_title="Normalized values",
+                )
+            #layout_g = go.Layout({'title':'Predicted parameters with '+f_value+' noise', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})
+            return figure_g
         else:
             return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})} #--- throw exception saying select model
     else:
         return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
+
+
+#--- callback to update the graph title based on the noise
+#@app.callback(Output('output-graph-g2', 'figure'),
+#              [Input('output-graph-g2', 'figure')],
+#              [State('f-value-slider', 'value')])
+#def update_graph_title(fig, f_value):
+#    fig.update_layout(
+#        title=go.layout.Title(text='Predicted parameters with '+f_value+' noise'))
+#    return fig
+
 
 if __name__ == '__main__':
     app.run_server(debug = False)
