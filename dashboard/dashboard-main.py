@@ -48,7 +48,7 @@ body = dbc.Container([
                 dbc.Col(
                         html.Div(children=[
                                 #--- Label
-                                html.H5('Hyper-Parameters'),
+                                html.H5('Parameters'),
                                 #--- Display Selected values
                                 html.Div(children=[
                                         html.P('Selected Data'),
@@ -96,17 +96,20 @@ body = dbc.Container([
                                 html.H5('Input Graph'),
                                 html.Div(id='input-graph-div',
                                          children=[
-                                                 dcc.Graph(id='g1',
-                                                           figure={
-                                                 'data':[{'x':data['X'],'y':data['Q2'], 'mode':'markers', 'name':'data 1', 'marker': {'size': 8}},
-                                                               ],
-                                                 'layout':{
-                                                              'title':'Input Data Graph 1 (X,Q2)',
-                                                              'xaxis':{'title':'X'},
-                                                              'yaxis':{'title':'Q2'},
-                                                              'clickmode': 'event+select'
-                                                          }
-                                                      })
+                                             dcc.Graph(id='g1',
+                                                       figure = go.Figure(
+                                                     data=go.Scattergl(
+                                                         x=data['X'],
+                                                         y=data['Q2'],
+                                                         mode='markers',
+                                                         ),
+                                                     layout=go.Layout(
+                                                         title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
+                                                         xaxis_title="X",
+                                                         yaxis_title="Q2",
+                                                         )
+                                                     )
+                                                       )
                                                  ])
                                 ]),
                         ),
@@ -116,7 +119,15 @@ body = dbc.Container([
                                 #--- Label
                                 html.H5('Output Graph'),
                                 html.Div(id='output-graph-div',
-                                         children=[dcc.Graph(id='output-graph-g2', animate=True)])
+                                         children=[dcc.Graph(id='output-graph-g2',
+                                                             figure=go.Figure(
+                                                                 data=[],
+                                                                 layout=go.Layout(
+                                                                     xaxis_title="Parameters",
+                                                                     yaxis_title="Normalized values",
+                                                                     )
+                                                                 ),
+                                                             animate=True)])
                                 ]),
                         ),
                 ])
@@ -208,7 +219,7 @@ def update_graph_scatter(updated_data, model_select, f_value):
                 )
             #(data, ['X0','y_new'], model_select)
             figure_g.update_layout(
-                title='Predicted parameters with '+str(f_value)+' noise',
+                #title='Predicted parameters with '+str(f_value)+' noise',
                 xaxis_title="Parameters",
                 yaxis_title="Normalized values",
                 )
