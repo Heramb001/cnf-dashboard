@@ -7,7 +7,9 @@ Created on Mon Jan 27 13:34:07 2020
 #import all the libraries
 import json
 import numpy as np
+import pandas as pd
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
@@ -40,7 +42,7 @@ data['co-ord'] = list(zip(X,Q2))
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 #--- navbar
-navbar = dbc.Navbar(
+navbar = html.Header(dbc.Navbar(
         [
                 html.A(
                         dbc.Row([
@@ -56,7 +58,7 @@ navbar = dbc.Navbar(
         color='dark',
         dark=True,
         sticky="top",
-)
+))
 
 #--- body
 body = dbc.Container([
@@ -68,7 +70,14 @@ body = dbc.Container([
                                 #--- Display Selected values
                                 html.Div(children=[
                                         html.P('Selected Data'),
-                                        html.Pre(id='selected-data')]),
+                                        #html.Pre(id='selected-data')
+                                        dash_table.DataTable(id='selected-data',
+                                                             fixed_rows={ 'headers': True, 'data': 0 },
+                                                             style_table={
+                                                                     'height': '200px',
+                                                                     #'overflowY': 'scroll',
+                                                                     })
+                                        ]),
                                 #--- Slider
                                 html.Div(
                                     className='slider-box',
@@ -94,12 +103,20 @@ body = dbc.Container([
                                             )]),
                                 #--- Submit button
                                 html.Div(children=[
-                                    #--- Submit
+                                    #--- Submit Button
                                     html.Button(id='submit-button', n_clicks=0, children='Submit'),
+                                    #--- Reset Button
+                                    html.Button(id='reset-button', n_clicks=0, children='Reset'),
                                     #--- output div
                                     html.Div(children=[
                                             html.P('Output Data '),
-                                            html.Pre(id='output-state'),
+                                            #html.Pre(id='output-state'),
+                                            dash_table.DataTable(id='output-state',
+                                                             fixed_rows={ 'headers': True, 'data': 0 },
+                                                             style_table={
+                                                                     'height': '200px',
+                                                                     #'overflowY': 'scroll',
+                                                                     })
                                             ])
                                     ])
                                 ]),
@@ -120,7 +137,7 @@ body = dbc.Container([
                                                          mode='markers',
                                                          ),
                                                      layout=go.Layout(
-                                                         title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
+                                                         #title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
                                                          xaxis_title="X",
                                                          yaxis_title="Q2",
                                                          )
@@ -159,7 +176,8 @@ app.layout = html.Div(children=[
 
 #--- display points
 @app.callback(
-    Output('selected-data', 'children'),
+    [Output('selected-data', 'data'),
+     Output('selected-data', 'columns')],
     [Input('g1', 'selectedData')])
 def display_selected_data(selectedData):
     #--- parsing the selected data
@@ -175,13 +193,14 @@ def display_selected_data(selectedData):
             temp_x.append(point['x'])
             temp_y.append(point['y'])
         #points = s_data['points']
-        pointsdict = {
-                'x' : temp_x,
-                'y' : temp_y 
-                }
-        
-        return str(pointsdict)
-    return s_data
+        df = pd.DataFrame(data=temp_x, columns=["X"])
+        df['Q2'] = temp_y
+        #{
+         #       'x' : temp_x,
+          #      'y' : temp_y 
+           #     }
+        return df.to_dict('records'),[{"name":'X',"id":'X'},{"name":'Q2',"id":'Q2'}]
+    return [{}],[]
 
 #--- slider callback
 @app.callback(
@@ -192,23 +211,28 @@ def update_slider(value):
 
 #--- callback after submit
 @app.callback(
-        Output('output-state', 'children'),
+        [Output('output-state', 'data'),
+         Output('output-state', 'columns')],
         [Input('submit-button', 'n_clicks')],
-        [State('selected-data', 'children'),
+        [
+         State('selected-data', 'data'),
+         #State('selected-data', 'children'),
          State('f-value-slider', 'value')])
 def update_output(n_clicks, str_dict, f_value):
     # --- update the values
     if str_dict is not None:
-        data_new = eval(str_dict)
+        data_new = pd.DataFrame(str_dict)
         data['Q2_new'] = np.where(data['is_selected']==True, data['Q2']+float(f_value), data['Q2'])
-        data_new['Q2_new'] = [float(x) + float(f_value) for x in data_new['y']]
+        data_new['Q2_new'] = [float(x) + float(f_value) for x in data_new['Q2']]
         data_new['is_selected'] = False
-        return str(data_new)
-    return None
+        data_return = data_new[['X','Q2','Q2_new']]
+        #return str(data_new)
+        return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return.columns]
+    return [{}],[]
 
 #--- callback to update the output graph
 @app.callback(Output('output-graph-g2', 'figure'),
-              [Input('output-state', 'children')],
+              [Input('output-state', 'data')],
               [State('model-select','value'),
                State('f-value-slider', 'value')])
 def update_graph_scatter(updated_data, model_select, f_value):

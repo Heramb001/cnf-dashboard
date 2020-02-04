@@ -1,11 +1,16 @@
 
 .slider-box {
+	margin-top: 20px;
     margin-bottom: 20px;
 }
 
 .h5-cnf{
 	display: flex;
 	justify-content: center;
+}
+
+.container-fluid{
+	padding-top:20px;
 }
 
 #model-select{
