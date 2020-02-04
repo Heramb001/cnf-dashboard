@@ -28,12 +28,16 @@ CNF_LOGO = "./assets/favicon.ico"
 #-- Loading the data
 X = np.load("data/X.npy")
 Q2 = np.load("data/Q2.npy")
+obs_p = np.load("data/obs_p.npy") #-- toy data is of shape (100,101)
+obs_n = np.load("data/obs_n.npy") #-- toy data is of shape (100,101)
 
 data = pd.DataFrame(data = X,
                     index=np.arange(len(X)),
                     columns=['X']
                     )
 data['Q2'] = Q2
+data['obs_p'] = obs_p[0,:] #--- currently taking only one sample
+data['obs_n'] = obs_n[0,:] #--- currently taking only one sample
 data['is_selected'] = False
 data['co-ord'] = list(zip(X,Q2))
 
