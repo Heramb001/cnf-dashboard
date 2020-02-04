@@ -14,7 +14,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
-import pandas as pd
 import plotly.graph_objs as go
 
 
@@ -24,6 +23,9 @@ from mlutils import backwardPredict
 
 #--- initializing all the external things
 CNF_LOGO = "./assets/favicon.ico"
+num_features = 202
+
+
 
 #-- Loading the data
 X = np.load("data/X.npy")
@@ -80,7 +82,12 @@ body = dbc.Container([
                                                              style_table={
                                                                      'height': '200px',
                                                                      #'overflowY': 'scroll',
-                                                                     })
+                                                                     },
+                                                             style_cell={
+                                                                 'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
+                                                                 'overflow': 'hidden',
+                                                                 'textOverflow': 'ellipsis',
+                                                                 })
                                         ]),
                                 #--- Slider
                                 html.Div(
@@ -101,7 +108,8 @@ body = dbc.Container([
                                             id='model-select',
                                             options=[
                                                     {'label':'--select--','value':'null'},
-                                                    {'label': 'Model 1', 'value': 'model_1'}
+                                                    {'label': 'Model 1', 'value': 'model_1'},
+                                                    {'label': 'My Model', 'value': 'my_model'}
                                                     ],
                                             value='null'
                                             )]),
@@ -120,7 +128,12 @@ body = dbc.Container([
                                                              style_table={
                                                                      'height': '200px',
                                                                      #'overflowY': 'scroll',
-                                                                     })
+                                                                     },
+                                                             style_cell={
+                                                                 'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
+                                                                 'overflow': 'hidden',
+                                                                 'textOverflow': 'ellipsis',
+                                                                 })
                                             ])
                                     ])
                                 ]),
@@ -189,21 +202,27 @@ def display_selected_data(selectedData):
     if s_data != 'null':
         selected = json.loads(s_data)
         temp_x = []
-        temp_y = []
+        temp_q2 = []
+        temp_op = []
+        temp_on = []
         for point in selected['points']:
             #return point
             #--- update the is_selected column
             data.loc[data['co-ord'] == (point['x'],point['y']),'is_selected'] =  True
+            temp_op.append(data.loc[data['co-ord'] == (point['x'],point['y']), 'obs_p'])
+            temp_on.append(data.loc[data['co-ord'] == (point['x'],point['y']), 'obs_n'])
             temp_x.append(point['x'])
-            temp_y.append(point['y'])
+            temp_q2.append(point['y'])
         #points = s_data['points']
         df = pd.DataFrame(data=temp_x, columns=["X"])
-        df['Q2'] = temp_y
+        df['Q2'] = temp_q2
+        df['obs_p'] = temp_op
+        df['obs_n'] = temp_on
         #{
          #       'x' : temp_x,
           #      'y' : temp_y 
            #     }
-        return df.to_dict('records'),[{"name":'X',"id":'X'},{"name":'Q2',"id":'Q2'}]
+        return df.to_dict('records'),[{"name":i,"id":i} for i in df.columns]
     return [{}],[]
 
 #--- slider callback
@@ -226,10 +245,14 @@ def update_output(n_clicks, str_dict, f_value):
     # --- update the values
     if str_dict is not None:
         data_new = pd.DataFrame(str_dict)
-        data['Q2_new'] = np.where(data['is_selected']==True, data['Q2']+float(f_value), data['Q2'])
-        data_new['Q2_new'] = [float(x) + float(f_value) for x in data_new['Q2']]
+        #--- udpate the dataframe and displaying all the columns
+        data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] * float(f_value), data['obs_p'])
+        data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] * float(f_value), data['obs_n'])
+        #print('-------'+str(data_new["obs_p"][0])+'--------------')
+        data_new['obs_p-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_p']]
+        data_new['obs_n-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_n']]
         data_new['is_selected'] = False
-        data_return = data_new[['X','Q2','Q2_new']]
+        data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
         #return str(data_new)
         return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return.columns]
     return [{}],[]
@@ -246,7 +269,7 @@ def update_graph_scatter(updated_data, model_select, f_value):
             #modelname = 'model_1'
             #datadict = eval(updated_data)
             
-            nn_pred = backwardPredict(fname, model_select, float(f_value))
+            nn_pred = backwardPredict(fname, model_select, float(f_value), data)
             figure_g = go.Figure(
                 data = go.Scatter(
                     x=np.arange(10),
@@ -287,3 +310,18 @@ def update_graph_scatter(updated_data, model_select, f_value):
 
 if __name__ == '__main__':
     app.run_server(debug = False)
+    
+
+
+#----- Redundant Data ----#
+'''
+data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
+data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
+print('-------'+str(data_new["obs_p"][0])+'--------------')
+data_new['obs_p-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_p']]
+data_new['obs_n-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_n']]
+data_new['is_selected'] = False
+data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
+#return str(data_new)
+return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return]
+'''

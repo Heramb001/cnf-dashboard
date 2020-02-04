@@ -42,14 +42,17 @@ def addNoise(data, alpha, num_features):
     return predList
 
 
-def backwardPredict(fname, model, noise_value):
-# load xsec file
-    xsec = np.load('mldata/%s.npy'%fname)
+def calculate_xsec(data):
+    return np.concatenate((data['obs_p-N'], data['obs_n-N']))
+
+def backwardPredict(fname, model, noise_value, dataframe):
+    # load xsec file
+    xsec = calculate_xsec(dataframe)
     ml = load_model(model) 
 
 
     # add 0.05 noise 
-    predList = addNoise(xsec, noise_value, 342) 
+    predList = addNoise(xsec, noise_value, 202) 
 
     # make the prediction
     pred = ml.predict(predList)
@@ -64,5 +67,5 @@ if __name__=='__main__':
     fname = 'test_backward'
     modelname = 'model_1'
 
-    pred = backwardPredict(fname, modelname)
+    pred = backwardPredict(fname, modelname, 0.0132, dataFrame)
     print("\nSaving predicted parameters file in example1/data folder ...")
