@@ -275,8 +275,8 @@ def update_output(n_clicks, tabledata, model_select, f_value):
             #--- concatenate the lists to get the cross-sectional Data
             xsec = calculate_xsec(obs_p_noised, obs_n_noised)
             nn_pred = backwardPredict(fname, model_select, xsec)
-            figure_g = go.Figure(
-                data = go.Scatter(
+            figure_g = go.Figure()
+            dataplot = go.Scatter(
                     x=np.arange(10),
                     y=nn_pred.mean(axis=0),
                     name='pred mean',
@@ -288,7 +288,15 @@ def update_output(n_clicks, tabledata, model_select, f_value):
                             visible=True
                             )
                     )
-                )
+            #--- predicted Output
+            figure_g.add_trace(dataplot)
+            #--- true output toy data
+            par = np.load("./data/par.npy") # this is the output
+            figure_g.add_trace(go.Scatter(
+                    x=np.arange(10),
+                    y=par[0],
+                    name='True Value'
+                    ))
             figure_g.update_layout(
                 #title='Predicted parameters with '+str(f_value)+' noise',
                 xaxis_title="Parameters",
