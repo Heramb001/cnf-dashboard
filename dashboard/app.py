@@ -23,7 +23,7 @@ from mlutils import backwardPredict
 
 #--- initializing all the external things
 CNF_LOGO = "./assets/favicon.ico"
-num_features = 202
+num_features = 101
 
 
 
@@ -246,8 +246,8 @@ def update_output(n_clicks, str_dict, f_value):
     if str_dict is not None:
         data_new = pd.DataFrame(str_dict)
         #--- udpate the dataframe and displaying all the columns
-        data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] * float(f_value), data['obs_p'])
-        data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] * float(f_value), data['obs_n'])
+        data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
+        data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
         #print('-------'+str(data_new["obs_p"][0])+'--------------')
         data_new['obs_p-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_p']]
         data_new['obs_n-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_n']]
@@ -255,6 +255,7 @@ def update_output(n_clicks, str_dict, f_value):
         data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
         #return str(data_new)
         return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return.columns]
+        #return [{}],[]
     return [{}],[]
 
 #--- callback to update the output graph
@@ -279,7 +280,7 @@ def update_graph_scatter(updated_data, model_select, f_value):
                     error_y=dict(
                             type='data', # value of error bar given in data coordinates,
                             color='orange',
-                            array=nn_pred.std(axis = 0)*80,
+                            array=nn_pred.std(axis = 0)*5,
                             visible=True
                             )
                     )
