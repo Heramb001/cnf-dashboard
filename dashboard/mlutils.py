@@ -41,21 +41,29 @@ def addNoise(data, alpha, num_features):
 
     return predList
 
+def addNoiseSelected(data, n_value, validation_column, data_column, num_features):
+    predList = []
+    for i in range(1000):
+        predList.append(np.where(data[validation_column]==True, data[data_column] + (float(n_value) * np.random.rand(num_features,)), data[data_column]))
+        #predList.append(data + (alpha * np.random.rand(num_features,)))
+    predList = np.array(predList)
+    return predList
 
-def calculate_xsec(data):
-    return np.concatenate((data['obs_p-N'], data['obs_n-N']))
 
-def backwardPredict(fname, model, noise_value, dataframe):
+def calculate_xsec(p_Data, n_Data):
+    return np.concatenate((p_Data, n_Data), axis = 1)
+
+def backwardPredict(fname, model, xsec_noised):
     # load xsec file
-    xsec = calculate_xsec(dataframe)
+    #xsec = calculate_xsec(dataframe)
     ml = load_model(model) 
 
 
     # add 0.05 noise 
-    predList = addNoise(xsec, noise_value, 202) 
+    #predList = addNoise(xsec, noise_value, 202) 
 
     # make the prediction
-    pred = ml.predict(predList)
+    pred = ml.predict(xsec_noised)
     #pred = par_scaler.inverse_transform(pred)
     np.save('data/%s-par.npy'%fname, pred)
     return pred

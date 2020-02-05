@@ -19,6 +19,8 @@ import plotly.graph_objs as go
 
 #--- load custom libraries.
 from mlutils import backwardPredict
+from mlutils import addNoiseSelected
+from mlutils import calculate_xsec
 
 
 #--- initializing all the external things
@@ -116,28 +118,14 @@ body = dbc.Container([
                                 #--- Submit button
                                 html.Div(children=[
                                     #--- Submit Button
-                                    html.Button(id='submit-button', n_clicks=0, children='Submit'),
+                                    html.Button(id='submit-button', className='cnf-button', n_clicks=0, children='Submit'),
                                     #--- Reset Button
-                                    html.Button(id='reset-button', n_clicks=0, children='Reset'),
+                                    html.Button(id='reset-button', className='cnf-button', n_clicks=0, children='Reset'),
                                     #--- output div
-                                    html.Div(children=[
-                                            html.P('Output Data '),
-                                            #html.Pre(id='output-state'),
-                                            dash_table.DataTable(id='output-state',
-                                                             fixed_rows={ 'headers': True, 'data': 0 },
-                                                             style_table={
-                                                                     'height': '200px',
-                                                                     #'overflowY': 'scroll',
-                                                                     },
-                                                             style_cell={
-                                                                 'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
-                                                                 'overflow': 'hidden',
-                                                                 'textOverflow': 'ellipsis',
-                                                                 })
-                                            ])
+                                    
                                     ])
                                 ]),
-                        width=3,
+                        width=4,
                         ),
                 #--- Input Graph
                 dbc.Col(
@@ -162,6 +150,7 @@ body = dbc.Container([
                                                        )
                                                  ])
                                 ]),
+                        width=4,
                         ),
                 #--- Output Graph
                 dbc.Col(
@@ -179,6 +168,7 @@ body = dbc.Container([
                                                                  ),
                                                              animate=True)])
                                 ]),
+                        width=4,
                         ),
                 ])
         ],
@@ -191,10 +181,11 @@ app.layout = html.Div(children=[
         body,
 ])
 
-#--- display points
+#--- display seleected points
 @app.callback(
     [Output('selected-data', 'data'),
-     Output('selected-data', 'columns')],
+     Output('selected-data', 'columns')
+     ],
     [Input('g1', 'selectedData')])
 def display_selected_data(selectedData):
     #--- parsing the selected data
@@ -232,32 +223,125 @@ def display_selected_data(selectedData):
 def update_slider(value):
     return format(value)
 
+
+#--- callback for Reset to clear datatable
+'''
+@app.callback(
+            [Output('selected-data', 'data'),
+            Output('selected-data', 'columns')],
+            [Input('reset-button', 'n_clicks')])
+def reset_dataTable(n_clicks):
+    #--- make sure the data['is_selected'] is returned to false
+    data['is_selected'] = False
+    return [{}],[]
+'''
+
+#--- callback for Reset to clear dropdown
+@app.callback(
+            Output('model-select', 'value'),
+        [Input('reset-button', 'n_clicks')])
+def reset_data_dropdown(n_clicks):
+    #--- make sure the data['is_selected'] is returned to false
+    data['is_selected'] = False
+    return ""
+
+#--- callback for Reset to refresh the grap
+
+
 #--- callback after submit
 @app.callback(
-        [Output('output-state', 'data'),
-         Output('output-state', 'columns')],
+        Output('output-graph-g2', 'figure'),
         [Input('submit-button', 'n_clicks')],
         [
          State('selected-data', 'data'),
          #State('selected-data', 'children'),
+         State('model-select','value'),
          State('f-value-slider', 'value')])
-def update_output(n_clicks, str_dict, f_value):
+def update_output(n_clicks, tabledata, model_select, f_value):
     # --- update the values
-    if str_dict is not None:
-        data_new = pd.DataFrame(str_dict)
-        #--- udpate the dataframe and displaying all the columns
-        data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
-        data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
-        #print('-------'+str(data_new["obs_p"][0])+'--------------')
-        data_new['obs_p-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_p']]
-        data_new['obs_n-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_n']]
-        data_new['is_selected'] = False
-        data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
-        #return str(data_new)
-        return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return.columns]
-        #return [{}],[]
-    return [{}],[]
+    if tabledata is not None:
+        if model_select != 'null':
+            #data_new = pd.DataFrame(tabledata)
+            #--- udpate the dataframe and display all the columns
+            
+            #-- file name to be saved
+            fname = 'test_backward'
+            
+            #--- get the list of data with added noise
+            obs_p_noised = addNoiseSelected(data, f_value, 'is_selected', 'obs_p', len(data['obs_p']))
+            obs_n_noised = addNoiseSelected(data, f_value, 'is_selected', 'obs_n', len(data['obs_n']))
+            
+            
+            #--- concatenate the lists to get the cross-sectional Data
+            xsec = calculate_xsec(obs_p_noised, obs_n_noised)
+            nn_pred = backwardPredict(fname, model_select, xsec)
+            figure_g = go.Figure(
+                data = go.Scatter(
+                    x=np.arange(10),
+                    y=nn_pred.mean(axis=0),
+                    name='pred mean',
+                    showlegend = True,
+                    error_y=dict(
+                            type='data', # value of error bar given in data coordinates,
+                            color='orange',
+                            array=nn_pred.std(axis = 0)*5,
+                            visible=True
+                            )
+                    )
+                )
+            figure_g.update_layout(
+                #title='Predicted parameters with '+str(f_value)+' noise',
+                xaxis_title="Parameters",
+                yaxis_title="Normalized values",
+                )
+            return figure_g
+        else:
+            return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})} #--- throw exception saying select model
+    else:
+         return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
 
+
+#--- callback to update the graph title based on the noise
+#@app.callback(Output('output-graph-g2', 'figure'),
+#              [Input('output-graph-g2', 'figure')],
+#              [State('f-value-slider', 'value')])
+#def update_graph_title(fig, f_value):
+#    fig.update_layout(
+#        title=go.layout.Title(text='Predicted parameters with '+f_value+' noise'))
+#    return fig
+
+
+if __name__ == '__main__':
+    app.run_server(debug = False)
+    
+
+
+#----- Redundant Data ----#
+'''
+data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
+data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
+print('-------'+str(data_new["obs_p"][0])+'--------------')
+data_new['obs_p-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_p']]
+data_new['obs_n-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_n']]
+data_new['is_selected'] = False
+data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
+#return str(data_new)
+return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return]
+'''
+
+'''
+#data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
+            #data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
+            #print('-------'+str(data_new["obs_p"][0])+'--------------')
+            #data_new['obs_p-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_p']]
+            #data_new['obs_n-N'] = [float(x[0]) * float(f_value) for x in data_new['obs_n']]
+            #data_new['is_selected'] = False
+            #data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
+            #return str(data_new)
+            #return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return.columns]
+'''
+
+'''
 #--- callback to update the output graph
 @app.callback(Output('output-graph-g2', 'figure'),
               [Input('output-state', 'data')],
@@ -297,32 +381,24 @@ def update_graph_scatter(updated_data, model_select, f_value):
             return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})} #--- throw exception saying select model
     else:
         return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
-
-
-#--- callback to update the graph title based on the noise
-#@app.callback(Output('output-graph-g2', 'figure'),
-#              [Input('output-graph-g2', 'figure')],
-#              [State('f-value-slider', 'value')])
-#def update_graph_title(fig, f_value):
-#    fig.update_layout(
-#        title=go.layout.Title(text='Predicted parameters with '+f_value+' noise'))
-#    return fig
-
-
-if __name__ == '__main__':
-    app.run_server(debug = False)
-    
-
-
-#----- Redundant Data ----#
 '''
-data['obs_p-N'] = np.where(data['is_selected']==True, data['obs_p'] + (float(f_value) * np.random.rand(num_features,)), data['obs_p'])
-data['obs_n-N'] = np.where(data['is_selected']==True, data['obs_n'] + (float(f_value) * np.random.rand(num_features,)), data['obs_n'])
-print('-------'+str(data_new["obs_p"][0])+'--------------')
-data_new['obs_p-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_p']]
-data_new['obs_n-N'] = [float(x[0]) + (float(f_value) * np.random.rand(num_features,)) for x in data_new['obs_n']]
-data_new['is_selected'] = False
-data_return = data_new[['X','Q2','obs_p', 'obs_n', 'obs_p-N', 'obs_n-N']]
-#return str(data_new)
-return data_return.to_dict('records'),[{"name":i,"id":i} for i in data_return]
+
+'''
+Output- Div
+
+html.Div(children=[
+                                            html.P('Output Data '),
+                                            #html.Pre(id='output-state'),
+                                            dash_table.DataTable(id='output-state',
+                                                             fixed_rows={ 'headers': True, 'data': 0 },
+                                                             style_table={
+                                                                     'height': '200px',
+                                                                     #'overflowY': 'scroll',
+                                                                     },
+                                                             style_cell={
+                                                                 'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
+                                                                 'overflow': 'hidden',
+                                                                 'textOverflow': 'ellipsis',
+                                                                 })
+                                            ])
 '''
