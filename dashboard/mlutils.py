@@ -41,10 +41,13 @@ def addNoise(data, alpha, num_features):
 
     return predList
 
-def addNoiseSelected(data, n_value, validation_column, data_column, num_features):
+def addNoiseSelected(data, n_value, uncertainity_value, validation_column, data_column, num_features):
     predList = []
+    #--- formula : xsec + Randomnumber * uncertainity * noise_value
     for i in range(1000):
-        predList.append(np.where(data[validation_column]==True, data[data_column] + (float(n_value) * np.random.rand(num_features,)), data[data_column]))
+        predList.append(np.where(data[validation_column]==True, #--- if data is selected
+                                 data[data_column] + (float(uncertainity_value) * np.random.rand(num_features,) * float(n_value)), #---- add value (noise * uncertainity * random number)
+                                 data[data_column])) #--- else remain the data as it is
         #predList.append(data + (alpha * np.random.rand(num_features,)))
     predList = np.array(predList)
     return predList

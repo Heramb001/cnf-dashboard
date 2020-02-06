@@ -47,7 +47,11 @@ data['co-ord'] = list(zip(X,Q2))
 
 
 #app = dash.Dash()
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__,
+                external_stylesheets=[dbc.themes.BOOTSTRAP],
+               )
+app.title = 'CNF Dashboard'
+
 
 #--- server app
 server = app.server
@@ -78,6 +82,15 @@ body = dbc.Container([
                         html.Div(children=[
                                 #--- Label
                                 html.H5('Parameters', className='h5-cnf'),
+                                
+                                #--- Uncertainity Column
+                                html.Div(className='user-input-cnf',
+                                    children=[
+                                        html.Label(dcc.Markdown('''
+                                                                Uncertainity Value () :  
+                                                                ''')),
+                                                                
+                                        dcc.Input(id='ucert_value', type='text', value='')]),
                                 #--- Display Selected values
                                 html.Div(children=[
                                         html.P('Selected Data'),
@@ -103,7 +116,7 @@ body = dbc.Container([
                                     dcc.Input(id='f-value-slider', type='text', value='')]),    
                                     html.Div(id='slider-output-container',
                                                  children=[
-                                                     dcc.Slider(id='my-slider', min=0, max=1, step=0.0001, value=0, updatemode='drag', marks={0:{'label' : '0', 'style': {'color': '#f50'}},1:{'label': '1', 'style': {'color': '#f50'}}})
+                                                     dcc.Slider(id='my-slider', min=0, max=5, step=0.0001, value=0, updatemode='drag', marks={0:{'label' : '0', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
                                         ])
                                 ]),
                                 #--- Dropdown
@@ -161,7 +174,12 @@ body = dbc.Container([
                                 #--- Label
                                 html.H5('Output Graph', className='h5-cnf'),
                                 html.Div(id='output-graph-div',
-                                         children=[dcc.Graph(id='output-graph-g2',
+                                         children=[
+                                             dcc.Loading(
+                                                 id='loading-output',
+                                                 type='circle',
+                                                 children=
+                                                         dcc.Graph(id='output-graph-g2',
                                                              figure=go.Figure(
                                                                  data=[],
                                                                  layout=go.Layout(
@@ -169,7 +187,9 @@ body = dbc.Container([
                                                                      yaxis_title="Normalized values",
                                                                      )
                                                                  ),
-                                                             animate=True)])
+                                                             animate=True)
+                                                         )
+                                             ])
                                 ]),
                         width=4,
                         ),
@@ -257,10 +277,10 @@ def reset_data_dropdown(n_clicks):
         [Input('submit-button', 'n_clicks')],
         [
          State('selected-data', 'data'),
-         #State('selected-data', 'children'),
+         State('ucert_value','value'),
          State('model-select','value'),
          State('f-value-slider', 'value')])
-def update_output(n_clicks, tabledata, model_select, f_value):
+def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value):
     # --- update the values
     if tabledata is not None:
         if model_select != 'null':
@@ -270,11 +290,13 @@ def update_output(n_clicks, tabledata, model_select, f_value):
             #-- file name to be saved
             fname = 'test_backward'
             
+            #--- add uncertainity column to the database
+            #data['uncertainity'] = float(uncertainity_value)
             #--- get the list of data with added noise
-            obs_p_noised = addNoiseSelected(data, f_value, 'is_selected', 'obs_p', len(data['obs_p']))
-            obs_n_noised = addNoiseSelected(data, f_value, 'is_selected', 'obs_n', len(data['obs_n']))
+            obs_p_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_p', len(data['obs_p']))
+            obs_n_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_n', len(data['obs_n']))
             
-            
+             
             #--- concatenate the lists to get the cross-sectional Data
             xsec = calculate_xsec(obs_p_noised, obs_n_noised)
             nn_pred = backwardPredict(fname, model_select, xsec)
@@ -307,11 +329,26 @@ def update_output(n_clicks, tabledata, model_select, f_value):
                 )
             return figure_g
         else:
-            return {'data': [], 'layout' : go.Layout({'title':'Output Graph No Model Selected', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})} #--- throw exception saying select model
+            return go.Figure(
+             data=[],
+             layout=go.Layout(
+                 title = 'Output Graph No Model Selected',
+                 xaxis_title="Parameters",
+                 yaxis_title="Normalized values",
+                 )
+             )#--- throw exception saying select model
     else:
-         return {'data' : [], 'layout' : go.Layout({'title':'Output Graph with no Data', 'xaxis':{'title':'Parameters'}, 'yaxis':{'title':'Normalized values'}})}
+         return go.Figure(
+             data=[],
+             layout=go.Layout(
+                 title = 'Output Graph with no Data',
+                 xaxis_title="Parameters",
+                 yaxis_title="Normalized values",
+                 )
+             )
+     
 
-
+# go.Figure(data=[])
 #--- callback to update the graph title based on the noise
 #@app.callback(Output('output-graph-g2', 'figure'),
 #              [Input('output-graph-g2', 'figure')],

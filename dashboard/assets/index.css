@@ -4,6 +4,10 @@
     margin-bottom: 20px;
 }
 
+.user-input-cnf {
+	margin-top: 20px;
+}
+
 .h5-cnf{
 	display: flex;
 	justify-content: center;
