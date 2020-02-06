@@ -49,6 +49,9 @@ data['co-ord'] = list(zip(X,Q2))
 #app = dash.Dash()
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+#--- server app
+server = app.server
+
 #--- navbar
 navbar = html.Header(dbc.Navbar(
         [
