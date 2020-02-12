@@ -8,7 +8,6 @@ Created on Tue Feb 11 12:01:43 2020
 import sys,os
 import numpy as np
 from scipy.special import gamma
-from tools import save, load,checkdir,lprint
 
 Q02=4.0
 lam2=0.2**2
@@ -39,3 +38,18 @@ def get_pdf(x,Q2,flav):
     s=get_s(Q2)
     if flav=='u': return get_shape(x,pu,s)
     if flav=='d': return get_shape(x,pd,s)
+    
+def calculate_pdf(data_par):
+    x = np.linspace(0.01,0.99,100)
+    Q2=4.0
+    u=[]
+    d=[]
+    for i in range(data_par.shape[0]):
+        set_params(data_par[i])
+        u.append(get_pdf(x,Q2,'u'))
+        d.append(get_pdf(x,Q2,'d'))
+    u = np.array(u)
+    d = np.array(d)
+    print('--> (RUNLOG) - Up data shape : ',u.shape)
+    print('--> (RUNLOG) - Down data Shape : ',d.shape)
+    return {'u' : u, 'd' : d, 'x-axis' : x}

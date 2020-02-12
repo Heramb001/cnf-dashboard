@@ -21,7 +21,7 @@ import plotly.graph_objs as go
 from mlutils import backwardPredict
 from mlutils import addNoiseSelected
 from mlutils import calculate_xsec
-
+from pdfutils import calculate_pdf
 
 #--- initializing all the external properties
 CNF_LOGO = "./assets/favicon.ico"
@@ -295,8 +295,10 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             #-- file name to be saved
             fname = 'test_backward'
             
-            #-- check if the 
-            
+            #-- check if No data is selected apply noise to every column
+            if not dataSelected :
+                data['is_selected'] = True
+                print('--> (RUNLOG) - No Data is selected, so applying noise to all columns.')
             #--- add uncertainity column to the database
             #data['uncertainity'] = float(uncertainity_value)
             #--- get the list of data with added noise
@@ -307,32 +309,68 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             #--- concatenate the lists to get the cross-sectional Data
             xsec = calculate_xsec(obs_p_noised, obs_n_noised)
             nn_pred = backwardPredict(fname, model_select, xsec)
+            
+            #--- use the predicted values to get the pdf-up and pdf-down values
+            pdf_dict = calculate_pdf(nn_pred)
+            
+            #--- Plot the figure
             figure_g = go.Figure()
-            dataplot = go.Scatter(
-                    x=np.arange(10),
-                    y=nn_pred.mean(axis=0),
-                    name='pred mean',
-                    showlegend = True,
-                    error_y=dict(
-                            type='data', # value of error bar given in data coordinates,
-                            color='orange',
-                            array=nn_pred.std(axis = 0)*5,
-                            visible=True
+            pdf_up_trace = go.Scatter(
+                        x = pdf_dict['x-axis'],
+                        y = pdf_dict['u'].mean(axis=0),
+                        name='PDF UP',
+                        showlegend=True,
+                        error_y=dict(
+                                type='data',
+                                color='orange',
+                                array=pdf_dict['u'].std(axis=0)*5,
+                                visible=True
+                                )
+                        )
+            #--- Plotting pdf_up
+            figure_g.add_trace(pdf_up_trace)
+            pdf_down_trace = go.Scatter(
+                        x = pdf_dict['x-axis'],
+                        y = pdf_dict['d'].mean(axis=0),
+                        name='PDF DOWN',
+                        showlegend=True,
+                        error_y=dict(
+                                type='data',
+                                color='yellow',
+                                array=pdf_dict['d'].std(axis=0)*5,
+                                visible=True
                             )
-                    )
-            #--- predicted Output
-            figure_g.add_trace(dataplot)
-            #--- true output toy data
-            par = np.load("./data/par.npy") # this is the output
-            figure_g.add_trace(go.Scatter(
-                    x=np.arange(10),
-                    y=par[0],
-                    name='True Value'
-                    ))
+                        )
+            #--- Plotting pdf_down
+            figure_g.add_trace(pdf_down_trace)
+            #-- add a dropdown to scale log and linear
             figure_g.update_layout(
                 #title='Predicted parameters with '+str(f_value)+' noise',
-                xaxis_title="Parameters",
-                yaxis_title="Normalized values",
+                xaxis_title="X",
+                yaxis_title="Y",
+                updatemenus=list([
+                        dict(active=1,
+                             direction="down",
+                             pad={"r": 10, "t": 10},
+                             showactive=True,
+                             x=0.58,
+                             xanchor="left",
+                             y=1.08,
+                             yanchor="top",
+                             buttons=list([
+                                     dict(label='Log Scale',
+                                          method='update',
+                                          args=[{'visible': [True, True]},
+                                                 {'title': 'Log scale',
+                                                  'yaxis': {'type': 'log'}}]),
+                                    dict(label='Linear Scale',
+                                         method='update',
+                                         args=[{'visible': [True, True]},
+                                                {'title': 'Linear scale',
+                                                 'yaxis': {'type': 'linear'}}])
+                            ]),
+                        )
+                    ])
                 )
             return figure_g
         else:
@@ -353,8 +391,28 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
                  yaxis_title="Normalized values",
                  )
              )
-     
-
+'''
+            dataplot = go.Scatter(
+                    x=np.arange(10),
+                    y=nn_pred.mean(axis=0),
+                    name='pred mean',
+                    showlegend = True,
+                    error_y=dict(
+                            type='data', # value of error bar given in data coordinates,
+                            color='orange',
+                            array=nn_pred.std(axis = 0)*5,
+                            visible=True
+                            )
+                    )
+            #--- predicted Output
+            #--- true output toy data
+            par = np.load("./data/par.npy") # this is the output
+            figure_g.add_trace(go.Scatter(
+                    x=np.arange(10),
+                    y=par[0],
+                    name='True Value'
+                    ))
+'''
 # go.Figure(data=[])
 #--- callback to update the graph title based on the noise
 #@app.callback(Output('output-graph-g2', 'figure'),
