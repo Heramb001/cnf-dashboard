@@ -23,10 +23,9 @@ from mlutils import addNoiseSelected
 from mlutils import calculate_xsec
 
 
-#--- initializing all the external things
+#--- initializing all the external properties
 CNF_LOGO = "./assets/favicon.ico"
-num_features = 101
-
+dataSelected = False
 
 
 #-- Loading the data
@@ -46,15 +45,7 @@ data['is_selected'] = False
 data['co-ord'] = list(zip(X,Q2))
 
 
-#app = dash.Dash()
-app = dash.Dash(__name__,
-                external_stylesheets=[dbc.themes.BOOTSTRAP],
-               )
-app.title = 'CNF Dashboard'
 
-
-#--- server app
-server = app.server
 
 #--- navbar
 navbar = html.Header(dbc.Navbar(
@@ -90,7 +81,7 @@ body = dbc.Container([
                                                                 Uncertainity Value () :  
                                                                 ''')),
                                                                 
-                                        dcc.Input(id='ucert_value', type='text', value='')]),
+                                        dcc.Input(id='ucert_value', type='text', value='0.05')]),
                                 #--- Display Selected values
                                 html.Div(children=[
                                         html.P('Selected Data'),
@@ -126,12 +117,11 @@ body = dbc.Container([
                                             id='model-select',
                                             options=[
                                                     {'label':'--select--','value':'null'},
-                                                    {'label': 'Model 1', 'value': 'model_1'},
                                                     {'label': 'My Model', 'value': 'my_model'}
                                                     ],
                                             value='null'
                                             )]),
-                                #--- Submit button
+                                #--- Submit & Reset button
                                 html.Div(children=[
                                     #--- Submit Button
                                     html.Button(id='submit-button', className='cnf-button', n_clicks=0, children='Submit'),
@@ -198,13 +188,26 @@ body = dbc.Container([
         fluid=True)
 
 
+                                                                
+                                                                
+
+                                                                
+external_Scripts = ['https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js']                                           
+app = dash.Dash(__name__,
+                external_scripts = external_Scripts,
+                external_stylesheets=[dbc.themes.BOOTSTRAP],
+               )
+app.title = 'CNF Dashboard'
+#--- server app
+server = app.server
+                                                                
 #--- Final Layout
 app.layout = html.Div(children=[
         navbar,
         body,
 ])
 
-#--- display seleected points
+#--- display selected points
 @app.callback(
     [Output('selected-data', 'data'),
      Output('selected-data', 'columns')
@@ -214,6 +217,8 @@ def display_selected_data(selectedData):
     #--- parsing the selected data
     s_data = json.dumps(selectedData, indent=2)
     if s_data != 'null':
+        #--- set the data_Selected falg to true
+        dataSelected = True
         selected = json.loads(s_data)
         temp_x = []
         temp_q2 = []
@@ -289,6 +294,8 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             
             #-- file name to be saved
             fname = 'test_backward'
+            
+            #-- check if the 
             
             #--- add uncertainity column to the database
             #data['uncertainity'] = float(uncertainity_value)
