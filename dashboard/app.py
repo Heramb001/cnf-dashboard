@@ -44,6 +44,15 @@ data['obs_n'] = obs_n[0,:] #--- currently taking only one sample
 data['is_selected'] = False
 data['co-ord'] = list(zip(X,Q2))
 
+#---- calling the dash app
+external_Scripts = ['https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js']                                           
+mathjax = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML'
+app = dash.Dash(__name__,
+                external_scripts = external_Scripts,
+                external_stylesheets=[dbc.themes.BOOTSTRAP],
+               )
+app.title = 'CNF Dashboard'
+app.scripts.append_script({ 'external_url' : mathjax })
 
 
 
@@ -77,9 +86,7 @@ body = dbc.Container([
                                 #--- Uncertainity Column
                                 html.Div(className='user-input-cnf',
                                     children=[
-                                        html.Label(dcc.Markdown('''
-                                                                Uncertainity Value () :  
-                                                                ''')),
+                                        html.Label('Uncertainity Value : '),
                                                                 
                                         dcc.Input(id='ucert_value', type='text', value='0.05')]),
                                 #--- Display Selected values
@@ -192,12 +199,7 @@ body = dbc.Container([
                                                                 
 
                                                                 
-external_Scripts = ['https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js']                                           
-app = dash.Dash(__name__,
-                external_scripts = external_Scripts,
-                external_stylesheets=[dbc.themes.BOOTSTRAP],
-               )
-app.title = 'CNF Dashboard'
+
 #--- server app
 server = app.server
                                                                 
@@ -347,23 +349,25 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             figure_g.update_layout(
                 #title='Predicted parameters with '+str(f_value)+' noise',
                 xaxis_title="X",
-                yaxis_title="Y",
+                #yaxis_title="Y",
+                #annotations=[dict(text='Scale : ', showarrow=False, x=0, y=1.10, yref='paper', align='left')],
                 updatemenus=list([
-                        dict(active=1,
-                             direction="down",
+                        dict(type="buttons",
+                             active=1,
+                             direction="right",
                              pad={"r": 10, "t": 10},
                              showactive=True,
-                             x=0.58,
+                             x=0,
                              xanchor="left",
-                             y=1.08,
+                             y=1.20,
                              yanchor="top",
                              buttons=list([
-                                     dict(label='Log Scale',
+                                     dict(label='Log',
                                           method='update',
                                           args=[{'visible': [True, True]},
                                                  {'title': 'Log scale',
                                                   'yaxis': {'type': 'log'}}]),
-                                    dict(label='Linear Scale',
+                                    dict(label='Linear',
                                          method='update',
                                          args=[{'visible': [True, True]},
                                                 {'title': 'Linear scale',
@@ -391,28 +395,7 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
                  yaxis_title="Normalized values",
                  )
              )
-'''
-            dataplot = go.Scatter(
-                    x=np.arange(10),
-                    y=nn_pred.mean(axis=0),
-                    name='pred mean',
-                    showlegend = True,
-                    error_y=dict(
-                            type='data', # value of error bar given in data coordinates,
-                            color='orange',
-                            array=nn_pred.std(axis = 0)*5,
-                            visible=True
-                            )
-                    )
-            #--- predicted Output
-            #--- true output toy data
-            par = np.load("./data/par.npy") # this is the output
-            figure_g.add_trace(go.Scatter(
-                    x=np.arange(10),
-                    y=par[0],
-                    name='True Value'
-                    ))
-'''
+
 # go.Figure(data=[])
 #--- callback to update the graph title based on the noise
 #@app.callback(Output('output-graph-g2', 'figure'),
@@ -514,4 +497,27 @@ html.Div(children=[
                                                                  'textOverflow': 'ellipsis',
                                                                  })
                                             ])
+'''
+
+'''
+            dataplot = go.Scatter(
+                    x=np.arange(10),
+                    y=nn_pred.mean(axis=0),
+                    name='pred mean',
+                    showlegend = True,
+                    error_y=dict(
+                            type='data', # value of error bar given in data coordinates,
+                            color='orange',
+                            array=nn_pred.std(axis = 0)*5,
+                            visible=True
+                            )
+                    )
+            #--- predicted Output
+            #--- true output toy data
+            par = np.load("./data/par.npy") # this is the output
+            figure_g.add_trace(go.Scatter(
+                    x=np.arange(10),
+                    y=par[0],
+                    name='True Value'
+                    ))
 '''
