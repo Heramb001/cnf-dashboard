@@ -114,7 +114,7 @@ body = dbc.Container([
                                     dcc.Input(id='f-value-slider', type='text', value='1')]),    
                                     html.Div(id='slider-output-container',
                                                  children=[
-                                                     dcc.Slider(id='my-slider', min=1, max=5, step=0.0001, value=0, updatemode='drag', marks={1:{'label' : '1', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
+                                                     dcc.Slider(id='my-slider', min=1, max=5, step=0.0001, value=1, updatemode='drag', marks={1:{'label' : '1', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
                                         ])
                                 ]),
                                 #--- Dropdown
