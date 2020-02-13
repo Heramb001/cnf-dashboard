@@ -111,10 +111,10 @@ body = dbc.Container([
                                     children=[
                                     html.Div(children=[
                                     html.Label('F-value (Noise) :  '),
-                                    dcc.Input(id='f-value-slider', type='text', value='')]),    
+                                    dcc.Input(id='f-value-slider', type='text', value='1')]),    
                                     html.Div(id='slider-output-container',
                                                  children=[
-                                                     dcc.Slider(id='my-slider', min=0, max=5, step=0.0001, value=0, updatemode='drag', marks={0:{'label' : '0', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
+                                                     dcc.Slider(id='my-slider', min=1, max=5, step=0.0001, value=0, updatemode='drag', marks={1:{'label' : '1', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
                                         ])
                                 ]),
                                 #--- Dropdown
@@ -220,6 +220,7 @@ def display_selected_data(selectedData):
     s_data = json.dumps(selectedData, indent=2)
     if s_data != 'null':
         #--- set the data_Selected falg to true
+        global dataSelected
         dataSelected = True
         selected = json.loads(s_data)
         temp_x = []
@@ -298,8 +299,10 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             fname = 'test_backward'
             
             #-- check if No data is selected apply noise to every column
+            global dataSelected
             if not dataSelected :
                 data['is_selected'] = True
+                dataSelected = True
                 print('--> (RUNLOG) - No Data is selected, so applying noise to all columns.')
             #--- add uncertainity column to the database
             #data['uncertainity'] = float(uncertainity_value)
@@ -319,13 +322,14 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
             figure_g = go.Figure()
             pdf_up_trace = go.Scatter(
                         x = pdf_dict['x-axis'],
-                        y = pdf_dict['u'].mean(axis=0),
+                        y = np.ones(len(pdf_dict['x-axis'])),#pdf_dict['u'].mean(axis=0),
                         name='PDF UP',
                         showlegend=True,
                         error_y=dict(
                                 type='data',
                                 color='orange',
-                                array=pdf_dict['u'].std(axis=0)*5,
+                                array=pdf_dict['u'].std(axis=0)/pdf_dict['d'].mean(axis=0),
+                                #array=pdf_dict['u'].std(axis=0)*5,
                                 visible=True
                                 )
                         )
@@ -344,7 +348,7 @@ def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value
                             )
                         )
             #--- Plotting pdf_down
-            figure_g.add_trace(pdf_down_trace)
+            #figure_g.add_trace(pdf_down_trace)
             #-- add a dropdown to scale log and linear
             figure_g.update_layout(
                 #title='Predicted parameters with '+str(f_value)+' noise',
