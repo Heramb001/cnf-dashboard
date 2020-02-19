@@ -20,19 +20,31 @@ import plotly.graph_objs as go
 #--- load custom libraries.
 from mlutils import backwardPredict
 from mlutils import addNoiseSelected
+from mlutils import addNoise
 from mlutils import calculate_xsec
 from pdfutils import calculate_pdf
+from graphutils import generatePDFplots, getPlotData
+
+
+
+#--- import config to get all external dependencies
+import config
 
 #--- initializing all the external properties
-CNF_LOGO = "./assets/favicon.ico"
+CNF_LOGO = config.CNF_LOGO
 dataSelected = False
 
 
 #-- Loading the data
-X = np.load("data/X.npy")
-Q2 = np.load("data/Q2.npy")
-obs_p = np.load("data/obs_p.npy") #-- toy data is of shape (100,101)
-obs_n = np.load("data/obs_n.npy") #-- toy data is of shape (100,101)
+X = np.load(config.xPath)
+Q2 = np.load(config.q2path)
+obs_p = np.load(config.obspPath) #-- toy data is of shape (100,101)
+obs_n = np.load(config.obsnPath) #-- toy data is of shape (100,101)
+
+#---True Data
+trueBar = np.load(config.parPath)
+trueBar = trueBar[0]
+
 
 data = pd.DataFrame(data = X,
                     index=np.arange(len(X)),
@@ -42,16 +54,21 @@ data['Q2'] = Q2
 data['obs_p'] = obs_p[0,:] #--- currently taking only one sample
 data['obs_n'] = obs_n[0,:] #--- currently taking only one sample
 data['is_selected'] = False
-data['co-ord'] = list(zip(X,Q2))
+#data['err_obs_p'] = data['obs_p'].copy()
+##data['err_obs_n'] = data['obs_n'].copy()
+#data['err_obs_p_mod'] = data['err_obs_p'].copy()
+#data['err_obs_n_mod'] = data['err_obs_n'].copy()
+#data['co-ord'] = list(zip(X,Q2))
 
 #---- calling the dash app
 external_Scripts = ['https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js']                                           
-mathjax = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML'
+mathjax = config.MATHJAX
+
 app = dash.Dash(__name__,
                 external_scripts = external_Scripts,
                 external_stylesheets=[dbc.themes.BOOTSTRAP],
                )
-app.title = 'CNF Dashboard'
+app.title = config.TITLE
 app.scripts.append_script({ 'external_url' : mathjax })
 
 
@@ -62,7 +79,7 @@ navbar = html.Header(dbc.Navbar(
                 html.A(
                         dbc.Row([
                                 dbc.Col(html.Img(src=CNF_LOGO, height="30px")),
-                                dbc.Col(dbc.NavbarBrand("CNF Dashboard", className="ml-2")),
+                                dbc.Col(dbc.NavbarBrand(config.TITLE, className="ml-2")),
                                 ],
                                 align='center',
                                 no_gutters=True,
@@ -88,7 +105,19 @@ body = dbc.Container([
                                     children=[
                                         html.Label('Uncertainity Value : '),
                                                                 
-                                        dcc.Input(id='ucert_value', type='text', value='0.05')]),
+                                        dcc.Input(id='ucert_value', type='text', value=str(config.DEFAULT_UNCERTAINITY))]),
+                                #--- Slider
+                                html.Div(
+                                    className='slider-box',
+                                    children=[
+                                    html.Div(children=[
+                                    html.Label('F-value (Noise) :  '),
+                                    dcc.Input(id='f-value-slider', type='text', value=str(config.DEFAULT_NOISE))]),    
+                                    html.Div(id='slider-output-container',
+                                                 children=[
+                                                     dcc.Slider(id='my-slider', min=config.NOISE_MIN, max=config.NOISE_MAX, step=0.0001, value=config.DEFAULT_NOISE, updatemode='drag', marks={config.NOISE_MIN:{'label' : str(config.NOISE_MIN), 'style': {'color': '#f50'}},config.NOISE_MAX:{'label': str(config.NOISE_MAX), 'style': {'color': '#f50'}}})
+                                        ])
+                                ]),
                                 #--- Display Selected values
                                 html.Div(children=[
                                         html.P('Selected Data'),
@@ -97,26 +126,14 @@ body = dbc.Container([
                                                              fixed_rows={ 'headers': True, 'data': 0 },
                                                              style_table={
                                                                      'height': '200px',
-                                                                     #'overflowY': 'scroll',
+                                                                     #'overflowX': 'scroll',
                                                                      },
                                                              style_cell={
-                                                                 'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
+                                                                 'minWidth': '20px', 'width': '20px', 'maxWidth': '50px',
                                                                  'overflow': 'hidden',
                                                                  'textOverflow': 'ellipsis',
                                                                  })
                                         ]),
-                                #--- Slider
-                                html.Div(
-                                    className='slider-box',
-                                    children=[
-                                    html.Div(children=[
-                                    html.Label('F-value (Noise) :  '),
-                                    dcc.Input(id='f-value-slider', type='text', value='1')]),    
-                                    html.Div(id='slider-output-container',
-                                                 children=[
-                                                     dcc.Slider(id='my-slider', min=1, max=5, step=0.0001, value=1, updatemode='drag', marks={1:{'label' : '1', 'style': {'color': '#f50'}},5:{'label': '5', 'style': {'color': '#f50'}}})
-                                        ])
-                                ]),
                                 #--- Dropdown
                                 html.Div(children=[
                                     html.Label('Select Model (Neural network Model): '),
@@ -157,7 +174,7 @@ body = dbc.Container([
                                                      layout=go.Layout(
                                                          #title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
                                                          xaxis_title="X",
-                                                         yaxis_title="Q2",
+                                                         yaxis_title="Q<sup>2</sup>",
                                                          )
                                                      )
                                                        )
@@ -186,7 +203,31 @@ body = dbc.Container([
                                                                  ),
                                                              animate=True)
                                                          )
-                                             ])
+                                             ]),
+                                html.Div(children=[
+                                   dcc.RadioItems(
+                                            id = 'scale-radio-buttons',
+                                            options=[
+                                                {'label': 'Linear', 'value': 'lin'},
+                                                {'label': 'Log', 'value': 'log'}
+                                            ],
+                                            value='lin',
+                                            labelStyle={'display': 'inline-block','padding-right':'10px'}
+                                        ) 
+                                   ]),
+                               html.Div(children=[
+                                   html.Label('Select Graph Plot: '),
+                                   dcc.Dropdown(
+                                            id='op-plot-select',
+                                            options=[
+                                                    {'label': 'PDF-UP Absolute', 'value': 'PUA'},
+                                                    {'label': 'PDF-DOWN Absolute', 'value': 'PDA'},
+                                                    {'label': 'PDF-UP Ratio', 'value': 'PUR'},
+                                                    {'label': 'PDF-UP Ratio', 'value': 'PDR'}
+                                                    ],
+                                            value='PUA'
+                                            )
+                                   ]),
                                 ]),
                         width=4,
                         ),
@@ -214,37 +255,58 @@ app.layout = html.Div(children=[
     [Output('selected-data', 'data'),
      Output('selected-data', 'columns')
      ],
-    [Input('g1', 'selectedData')])
-def display_selected_data(selectedData):
+    [Input('g1', 'selectedData'),
+     Input('ucert_value','value'),
+     Input('f-value-slider','value'),
+     Input('reset-button', 'n_clicks')])
+def update_selected_data(selectedData, uncertainValue, noiseValue, reset_clicks):
+    #-- check if reset is clicked
+    #--- validating the context to check which button is clicked
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
+    else:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    #---if nothing is pressed display an empty Graph
+    if button_id == 'No clicks yet':
+        return [{}],[]
+    
+    #--- reset the graph if reset is clicked
+    if button_id == 'reset-button':
+        return [{}],[]
     #--- parsing the selected data
-    s_data = json.dumps(selectedData, indent=2)
-    if s_data != 'null':
-        #--- set the data_Selected falg to true
-        global dataSelected
-        dataSelected = True
-        selected = json.loads(s_data)
-        temp_x = []
-        temp_q2 = []
-        temp_op = []
-        temp_on = []
-        for point in selected['points']:
-            #return point
-            #--- update the is_selected column
-            data.loc[data['co-ord'] == (point['x'],point['y']),'is_selected'] =  True
-            temp_op.append(data.loc[data['co-ord'] == (point['x'],point['y']), 'obs_p'])
-            temp_on.append(data.loc[data['co-ord'] == (point['x'],point['y']), 'obs_n'])
-            temp_x.append(point['x'])
-            temp_q2.append(point['y'])
-        #points = s_data['points']
-        df = pd.DataFrame(data=temp_x, columns=["X"])
-        df['Q2'] = temp_q2
-        df['obs_p'] = temp_op
-        df['obs_n'] = temp_on
-        #{
-         #       'x' : temp_x,
-          #      'y' : temp_y 
-           #     }
-        return df.to_dict('records'),[{"name":i,"id":i} for i in df.columns]
+    else : 
+        #print(selectedData)
+        s_data = json.dumps(selectedData, indent=2)
+        if s_data != 'null':
+            #--- set the data_Selected falg to true
+            global dataSelected
+            dataSelected = True
+            selected = json.loads(s_data)
+            #t_x = t_q2 = t_op = t_on = t_e_op = t_e_on = t_e_op_mod = t_e_on_mod = [] #--- create empty lists
+            #--- add uncertainity
+            data['err_obs_p'] = float(uncertainValue) * data['obs_p']
+            data['err_obs_n'] = float(uncertainValue) * data['obs_n']
+            data['err_obs_p_mod'] = data['err_obs_p'].copy()
+            data['err_obs_n_mod'] = data['err_obs_n'].copy()
+            print('---> (RUNLOG) -----')
+            print(' | ','X',' | ','Q2',' | ','obs_p',' | ','obs_n',' | ','err_obs_p',' | ','err_obs_n',' | ','err_obs_p_mod',' | ','err_obs_n_mod',' | ')
+            for point in selected['points']:
+                #return point
+                #--- update the is_selected column
+                data.loc[point['pointIndex'],'is_selected'] = True
+                #--- add noise to the points
+                data.loc[point['pointIndex'],'err_obs_p_mod'] *= float(noiseValue)
+                data.loc[point['pointIndex'],'err_obs_n_mod'] *= float(noiseValue)
+                
+                print(' | ',point['pointIndex'],' | ',point['x'],' | ',point['y'],' | ', data.loc[point['pointIndex'], 'obs_p'],
+                  ' | ', data.loc[point['pointIndex'], 'obs_n'], ' | ', data.loc[point['pointIndex'], 'err_obs_p'], 
+                  ' | ', data.loc[point['pointIndex'], 'err_obs_n'], ' | ', data.loc[point['pointIndex'], 'err_obs_p_mod'],
+                  ' | ', data.loc[point['pointIndex'], 'err_obs_n_mod'], ' | ')
+                print('---> (RUNLOG) - Total ',len(data[data['is_selected'] == True]),' samples selected...')
+            selectedDataDF = data[data['is_selected'] == True]
+            selectedDataDF = selectedDataDF[['X','Q2','obs_p','obs_n','err_obs_p','err_obs_n','err_obs_p_mod','err_obs_n_mod']]
+            return selectedDataDF.to_dict('records'),[{"name":i,"id":i} for i in selectedDataDF.columns]
     return [{}],[]
 
 #--- slider callback
@@ -274,6 +336,10 @@ def reset_dataTable(n_clicks):
 def reset_data_dropdown(n_clicks):
     #--- make sure the data['is_selected'] is returned to false
     data['is_selected'] = False
+    data['err_obs_p'] = 0
+    data['err_obs_n'] = 0
+    data['err_obs_p_mod'] = 0
+    data['err_obs_n_mod'] = 0
     return ""
 
 #--- callback for Reset to refresh the grap
@@ -282,123 +348,165 @@ def reset_data_dropdown(n_clicks):
 #--- callback after submit
 @app.callback(
         Output('output-graph-g2', 'figure'),
-        [Input('submit-button', 'n_clicks')],
+        [Input('submit-button', 'n_clicks'), #--- submit-button
+         Input('reset-button', 'n_clicks'),  #--- Reset Button
+         Input('scale-radio-buttons', 'value'),
+         Input('op-plot-select', 'value'),
+         ],
         [
          State('selected-data', 'data'),
          State('ucert_value','value'),
          State('model-select','value'),
          State('f-value-slider', 'value')])
-def update_output(n_clicks, tabledata, uncertainity_value, model_select, f_value):
-    # --- update the values
-    if tabledata is not None:
-        if model_select != 'null':
-            #data_new = pd.DataFrame(tabledata)
-            #--- udpate the dataframe and display all the columns
-            
-            #-- file name to be saved
-            fname = 'test_backward'
-            
-            #-- check if No data is selected apply noise to every column
-            global dataSelected
-            if not dataSelected :
-                data['is_selected'] = True
-                dataSelected = True
-                print('--> (RUNLOG) - No Data is selected, so applying noise to all columns.')
-            #--- add uncertainity column to the database
-            #data['uncertainity'] = float(uncertainity_value)
-            #--- get the list of data with added noise
-            obs_p_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_p', len(data['obs_p']))
-            obs_n_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_n', len(data['obs_n']))
-            
-             
-            #--- concatenate the lists to get the cross-sectional Data
-            xsec = calculate_xsec(obs_p_noised, obs_n_noised)
-            nn_pred = backwardPredict(fname, model_select, xsec)
-            
-            #--- use the predicted values to get the pdf-up and pdf-down values
-            pdf_dict = calculate_pdf(nn_pred)
-            
-            #--- Plot the figure
-            figure_g = go.Figure()
-            pdf_up_trace = go.Scatter(
-                        x = pdf_dict['x-axis'],
-                        y = np.ones(len(pdf_dict['x-axis'])),#pdf_dict['u'].mean(axis=0),
-                        name='PDF UP',
-                        showlegend=True,
-                        error_y=dict(
-                                type='data',
-                                color='orange',
-                                array=pdf_dict['u'].std(axis=0)/pdf_dict['d'].mean(axis=0),
-                                #array=pdf_dict['u'].std(axis=0)*5,
-                                visible=True
-                                )
-                        )
-            #--- Plotting pdf_up
-            figure_g.add_trace(pdf_up_trace)
-            pdf_down_trace = go.Scatter(
-                        x = pdf_dict['x-axis'],
-                        y = pdf_dict['d'].mean(axis=0),
-                        name='PDF DOWN',
-                        showlegend=True,
-                        error_y=dict(
-                                type='data',
-                                color='yellow',
-                                array=pdf_dict['d'].std(axis=0)*5,
-                                visible=True
-                            )
-                        )
-            #--- Plotting pdf_down
-            #figure_g.add_trace(pdf_down_trace)
-            #-- add a dropdown to scale log and linear
-            figure_g.update_layout(
-                #title='Predicted parameters with '+str(f_value)+' noise',
-                xaxis_title="X",
-                #yaxis_title="Y",
-                #annotations=[dict(text='Scale : ', showarrow=False, x=0, y=1.10, yref='paper', align='left')],
-                updatemenus=list([
-                        dict(type="buttons",
-                             active=1,
-                             direction="right",
-                             pad={"r": 10, "t": 10},
-                             showactive=True,
-                             x=0,
-                             xanchor="left",
-                             y=1.20,
-                             yanchor="top",
-                             buttons=list([
-                                     dict(label='Log',
-                                          method='update',
-                                          args=[{'visible': [True, True]},
-                                                 {'title': 'Log scale',
-                                                  'yaxis': {'type': 'log'}}]),
-                                    dict(label='Linear',
-                                         method='update',
-                                         args=[{'visible': [True, True]},
-                                                {'title': 'Linear scale',
-                                                 'yaxis': {'type': 'linear'}}])
-                            ]),
-                        )
-                    ])
-                )
-            return figure_g
-        else:
-            return go.Figure(
-             data=[],
-             layout=go.Layout(
-                 title = 'Output Graph No Model Selected',
-                 xaxis_title="Parameters",
-                 yaxis_title="Normalized values",
-                 )
-             )#--- throw exception saying select model
+def update_outputGraph(submit_clicks, reset_clicks, scale_value, plotDisplay, tabledata, uncertainity_value, model_select, f_value):
+    #--- validating the context to check which button is clicked
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = 'No clicks yet'
     else:
-         return go.Figure(
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    #---if nothing is pressed display an empty Graph
+    if button_id == 'No clicks yet':
+        return go.Figure(
              data=[],
              layout=go.Layout(
-                 title = 'Output Graph with no Data',
+                 title = 'No Input From User',
                  xaxis_title="Parameters",
-                 yaxis_title="Normalized values",
                  )
              )
+    
+    #--- reset the graph if reset is clicked
+    if button_id == 'reset-button':
+        return go.Figure(
+             data=[],
+             layout=go.Layout(
+                 title = 'Graph Data Reset',
+                 xaxis_title="Parameters",
+                 )
+             )
+    
+    if button_id == 'submit-button':
+        # --- update the values
+        if tabledata is not None:
+            if model_select != 'null':
+                #data_new = pd.DataFrame(tabledata)
+                #--- udpate the dataframe and display all the columns
+                
+                #-- file name to be saved
+                fname = 'test_backward'
+                
+                #-- check if No data is selected apply noise to every column
+                global dataSelected
+                if not dataSelected :
+                    data['is_selected'] = True
+                    dataSelected = True
+                    print('--> (RUNLOG) - No Data is selected, so applying noise to all columns.')
+                #--- add uncertainity column to the database
+                #data['uncertainity'] = float(uncertainity_value)
+                #--- get the list of data with added noise
+                #obs_p_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_p', len(data['obs_p']))
+                #obs_n_noised = addNoiseSelected(data, f_value, uncertainity_value, 'is_selected', 'obs_n', len(data['obs_n']))
+                
+                 
+                #--- concatenate the lists to get the cross-sectional Data
+                #xsec = calculate_xsec(obs_p_noised, obs_n_noised)
+                xsec = addNoise(data)
+                nn_pred = backwardPredict(fname, model_select, xsec)
+                
+                #--- use the predicted values to get the pdf-up and pdf-down values
+                pdf_pred_dict = calculate_pdf(nn_pred)
+                pdf_true_dict = calculate_pdf(trueBar, pred=False)
+                
+                #--- get all the plot related Data
+                yTrue, upperBound, yPred, lowerBound, plotTitle = getPlotData(plotDisplay, pdf_true_dict, pdf_pred_dict)
+                
+                
+                #--- generate figure
+                #figure_g = generatePDFplots(pdf_true_dict['x-axis'], yTrue, upperBound, yPred, lowerBound, plotTitle, scale_value)
+
+                #--- Plot the figure
+                #figure_g = go.Figure()
+                #pdf_up_trace = go.Scatter(
+                #            x = pdf_dict['x-axis'],
+                #            y = np.ones(len(pdf_dict['x-axis'])),#pdf_dict['u'].mean(axis=0),
+                #            name='PDF UP',
+                #            showlegend=True,
+                #            error_y=dict(
+                #                    type='data',
+                #                    color='orange',
+                #                    array=pdf_dict['u'].std(axis=0)/pdf_dict['d'].mean(axis=0),
+                #                    #array=pdf_dict['u'].std(axis=0)*5,
+                #                    visible=True
+                #                    )
+                #            )
+                #--- Plotting pdf_up
+                #figure_g.add_trace(pdf_up_trace)
+                #pdf_down_trace = go.Scatter(
+                #            x = pdf_dict['x-axis'],
+                #            y = pdf_dict['d'].mean(axis=0),
+                #            name='PDF DOWN',
+                #            showlegend=True,
+                #           error_y=dict(
+                #                    type='data',
+                #                    color='yellow',
+                #                    array=pdf_dict['d'].std(axis=0)*5,
+                #                    visible=True
+                #                )
+                #            )
+                #--- Plotting pdf_down
+                #figure_g.add_trace(pdf_down_trace)
+    
+                
+                #-- add a dropdown to scale log and linear
+                #figure_g.update_layout(
+                    #title='Predicted parameters with '+str(f_value)+' noise',
+                    #xaxis_title="X",
+                    #yaxis_title="Y",
+                    #annotations=[dict(text='Scale : ', showarrow=False, x=0, y=1.10, yref='paper', align='left')],
+                #    updatemenus=list([
+                #            dict(type="buttons",
+                #                 active=1,
+                #                 direction="right",
+                #                 pad={"r": 10, "t": 10},
+                #                 showactive=True,
+                #                 x=0,
+                #                 xanchor="left",
+                #                 y=1.20,
+                #                 yanchor="top",
+                #                 buttons=list([
+                #                         dict(label='Log',
+                #                              method='update',
+                #                              args=[{'visible': [True, True]},
+                #                                     {'title': 'Log scale',
+                #                                      'yaxis': {'type': 'log'}}]),
+                #                        dict(label='Linear',
+                #                             method='update',
+                #                             args=[{'visible': [True, True]},
+                #                                    {'title': 'Linear scale',
+                #                                     'yaxis': {'type': 'linear'}}])
+                #                ]),
+                #            )
+                #        ])
+                #    )
+                return generatePDFplots(pdf_true_dict['x-axis'], yTrue, upperBound, yPred, lowerBound, plotTitle, scale_value)
+            else:
+                return go.Figure(
+                 data=[],
+                 layout=go.Layout(
+                     title = 'Output Graph No Model Selected',
+                     xaxis_title="Parameters",
+                     yaxis_title="Normalized values",
+                     )
+                 )#--- throw exception saying select model
+        else:
+             return go.Figure(
+                 data=[],
+                 layout=go.Layout(
+                     title = 'Output Graph with no Data',
+                     xaxis_title="Parameters",
+                     yaxis_title="Normalized values",
+                     )
+                 )
 
 # go.Figure(data=[])
 #--- callback to update the graph title based on the noise

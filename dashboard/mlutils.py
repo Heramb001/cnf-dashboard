@@ -8,6 +8,7 @@ Created on Tue Jan 28 12:36:48 2020
 import numpy as np
 from tensorflow.keras.models import load_model
 import tensorflow as tf
+import pandas as pd
 #from sklearn.externals import joblib
 # from joblib import dump, load
 
@@ -32,6 +33,7 @@ def load_model(model):
 
 # Add gaussian noise
 
+'''
 def addNoise(data, alpha, num_features):
 
     predList = []
@@ -40,6 +42,7 @@ def addNoise(data, alpha, num_features):
     predList = np.array(predList)
 
     return predList
+'''
 
 def addNoiseSelected(data, n_value, uncertainity_value, validation_column, data_column, num_features):
     predList = []
@@ -52,7 +55,24 @@ def addNoiseSelected(data, n_value, uncertainity_value, validation_column, data_
     predList = np.array(predList)
     return predList
 
+def getCrossection(obs_p, obs_n):
+    return np.append(obs_p,obs_n)
 
+def addNoise(data):
+    predList = []
+    #--- formula 
+    #--- for the selected_data : xsec + Randomnumber * uncertainity * noise_value
+    for i in range(1000):
+        #--- create a pseudo table 
+        data_copy = data.copy()
+        #--- modify columns
+        data_copy['obs_p'] += np.random.randn(len(data_copy['obs_p'])) * data_copy['err_obs_p_mod']
+        data_copy['obs_n'] += np.random.randn(len(data_copy['obs_n'])) * data_copy['err_obs_n_mod']
+        predList.append(getCrossection(data_copy['obs_p'],data_copy['obs_n']))
+    predList = np.array(predList)
+    print('---> (RUNLOG) -- Shape of Crossection :  ',predList.shape)
+    return predList
+    
 def calculate_xsec(p_Data, n_Data):
     return np.concatenate((p_Data, n_Data), axis = 1)
 
@@ -60,10 +80,6 @@ def backwardPredict(fname, model, xsec_noised):
     # load xsec file
     #xsec = calculate_xsec(dataframe)
     ml = load_model(model) 
-
-
-    # add 0.05 noise 
-    #predList = addNoise(xsec, noise_value, 202) 
 
     # make the prediction
     pred = ml.predict(xsec_noised)
@@ -77,6 +93,6 @@ if __name__=='__main__':
 
     fname = 'test_backward'
     modelname = 'model_1'
-
+    dataFrame = pd.Dataframe()
     pred = backwardPredict(fname, modelname, 0.0132, dataFrame)
     print("\nSaving predicted parameters file in example1/data folder ...")

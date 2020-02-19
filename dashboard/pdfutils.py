@@ -39,15 +39,20 @@ def get_pdf(x,Q2,flav):
     if flav=='u': return get_shape(x,pu,s)
     if flav=='d': return get_shape(x,pd,s)
     
-def calculate_pdf(data_par):
+def calculate_pdf(data_par, pred = True):
     x = np.linspace(0.01,0.99,100)
     Q2=4.0
     u=[]
     d=[]
-    for i in range(data_par.shape[0]):
-        set_params(data_par[i])
-        u.append(get_pdf(x,Q2,'u'))
-        d.append(get_pdf(x,Q2,'d'))
+    if pred:                    #--- For True, we are calculating pdf for Predicted values
+        for i in range(data_par.shape[0]):
+            set_params(data_par[i])
+            u.append(get_pdf(x,Q2,'u'))
+            d.append(get_pdf(x,Q2,'d'))
+    else:                        #--- For False, we are calculating pdf for Ground Truth
+       set_params(data_par)
+       u = get_pdf(x,Q2,'u')
+       d = get_pdf(x,Q2,'d')       
     u = np.array(u)
     d = np.array(d)
     print('--> (RUNLOG) - Up data shape : ',u.shape)

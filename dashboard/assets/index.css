@@ -4,6 +4,16 @@
     margin-bottom: 20px;
 }
 
+#selected-data{
+	margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+#loading-output{
+	padding-top: 250px;
+	padding-bottom: 20%;
+}
+
 .user-input-cnf {
 	margin-top: 20px;
 }
