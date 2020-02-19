@@ -55,6 +55,6 @@ def calculate_pdf(data_par, pred = True):
        d = get_pdf(x,Q2,'d')       
     u = np.array(u)
     d = np.array(d)
-    print('--> (RUNLOG) - Up data shape : ',u.shape)
-    print('--> (RUNLOG) - Down data Shape : ',d.shape)
+    #print('--> (RUNLOG) - Up data shape : ',u.shape)
+    #print('--> (RUNLOG) - Down data Shape : ',d.shape)
     return {'u' : u, 'd' : d, 'x-axis' : x}

@@ -70,7 +70,7 @@ def addNoise(data):
         data_copy['obs_n'] += np.random.randn(len(data_copy['obs_n'])) * data_copy['err_obs_n_mod']
         predList.append(getCrossection(data_copy['obs_p'],data_copy['obs_n']))
     predList = np.array(predList)
-    print('---> (RUNLOG) -- Shape of Crossection :  ',predList.shape)
+    #print('---> (RUNLOG) -- Shape of Crossection :  ',predList.shape)
     return predList
     
 def calculate_xsec(p_Data, n_Data):
@@ -93,6 +93,6 @@ if __name__=='__main__':
 
     fname = 'test_backward'
     modelname = 'model_1'
-    dataFrame = pd.Dataframe()
+    dataFrame = pd.DataFrame()
     pred = backwardPredict(fname, modelname, 0.0132, dataFrame)
     print("\nSaving predicted parameters file in example1/data folder ...")

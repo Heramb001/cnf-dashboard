@@ -7,7 +7,9 @@ Created on Tue Feb 18 11:41:36 2020
 
 import plotly.graph_objects as go
 import numpy as np
-import config
+
+from config import Config
+config = Config()
 
 def getPlotData(plotType, pdf_true_dict, pdf_pred_dict):
     if plotType == 'PUA':
