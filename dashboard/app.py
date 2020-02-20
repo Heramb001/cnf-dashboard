@@ -102,8 +102,10 @@ config_button = dbc.Row([
                         )
                     ]),
                 dbc.ModalFooter([
-                    dbc.Button("Update", id="update-config", color="primary", className="ml-auto"),
-                    dbc.Button("Close", id="close", className="ml-auto")
+                    html.Div([
+                        dbc.Button("Update", id="update-config", color="primary", className="mr-2"),
+                        dbc.Button("Close", id="close", className="mr-2")
+                        ])
                 ]),
             ],
             id="modal",
