@@ -19,9 +19,7 @@ import plotly.graph_objs as go
 
 #--- load custom libraries.
 from mlutils import backwardPredict
-from mlutils import addNoiseSelected
 from mlutils import addNoise
-from mlutils import calculate_xsec
 from pdfutils import calculate_pdf
 from graphutils import generatePDFplots, getPlotData
 
@@ -45,7 +43,6 @@ obs_n = np.load(config.obsnPath) #-- toy data is of shape (100,101)
 
 #---True Data
 trueBar = np.load(config.parPath)
-trueBar = trueBar[config.DEFAULT_SAMPLE]
 
 
 data = pd.DataFrame(data = X,
@@ -53,8 +50,8 @@ data = pd.DataFrame(data = X,
                     columns=['X']
                     )
 data['Q2'] = Q2
-data['obs_p'] = obs_p[config.DEFAULT_SAMPLE,:] #--- currently taking only one sample
-data['obs_n'] = obs_n[config.DEFAULT_SAMPLE,:] #--- currently taking only one sample
+#data['obs_p'] = obs_p[config.DEFAULT_SAMPLE,:] #--- currently taking only one sample
+#data['obs_n'] = obs_n[config.DEFAULT_SAMPLE,:] #--- currently taking only one sample
 data['is_selected'] = False
 
 #---- calling the dash app
@@ -151,16 +148,15 @@ body = dbc.Container([
                                 #--- Uncertainity Column
                                 html.Div(className='user-input-cnf',
                                     children=[
-                                        html.Label('Uncertainity Value : '),
-                                                                
-                                        dcc.Input(id='ucert_value', type='text', value=str(config.DEFAULT_UNCERTAINITY))]),
+                                        html.Label('Uncertainity Value '),
+                                        dcc.Input(id='ucert_value', type='text', value=str(config.DEFAULT_UNCERTAINITY), style={'margin-left':'8px'})]),
                                 #--- Slider
                                 html.Div(
                                     className='slider-box',
                                     children=[
                                     html.Div(children=[
-                                    html.Label('F-value (Noise) :  '),
-                                    dcc.Input(id='f-value-slider', type='text', value=str(config.DEFAULT_NOISE))]),    
+                                    html.Label('F-value (Noise) '),
+                                    dcc.Input(id='f-value-slider', type='text', value=str(config.DEFAULT_NOISE), style={'margin-left':'8px'})]),    
                                     html.Div(id='slider-output-container',
                                                  children=[
                                                      dcc.Slider(id='my-slider', min=config.NOISE_MIN, max=config.NOISE_MAX, step=0.0001, value=config.DEFAULT_NOISE, updatemode='drag', marks={config.NOISE_MIN:{'label' : str(config.NOISE_MIN), 'style': {'color': '#f50'}},config.NOISE_MAX:{'label': str(config.NOISE_MAX), 'style': {'color': '#f50'}}})
@@ -184,7 +180,7 @@ body = dbc.Container([
                                         ]),
                                 #--- Dropdown
                                 html.Div(children=[
-                                    html.Label('Select Neural Network Model: '),
+                                    html.Label('Select Neural Network Model '),
                                     dcc.Dropdown(
                                             id='model-select',
                                             options=[
@@ -201,7 +197,7 @@ body = dbc.Container([
                                     html.Button(id='reset-button', className='cnf-button', n_clicks=0, children='Reset'),
                                     ])
                                 ]),
-                        width=4,
+                        width=3,
                         ),
                 #--- Input Graph
                 dbc.Col(
@@ -224,7 +220,13 @@ body = dbc.Container([
                                                          )
                                                      )
                                                        )
-                                                 ])
+                                                 ]),
+                                html.Div([
+                                    html.Div([
+                                        html.Label(['Select data sample']),
+                                        dcc.Input(id='xsec-data', type='number', min=0, max=len(obs_p)-1,value=config.DEFAULT_SAMPLE, style={'margin-left':'8px','margin-right':'8px'}),
+                                        ])
+                                    ]),
                                 ]),
                         width=4,
                         ),
@@ -250,32 +252,48 @@ body = dbc.Container([
                                                              animate=True)
                                                          )
                                              ]),
-                                html.Div(children=[
-                                   dcc.RadioItems(
-                                            id = 'scale-radio-buttons',
-                                            options=[
-                                                {'label': 'Linear', 'value': 'lin'},
-                                                {'label': 'Log', 'value': 'log'}
+                                html.Div([  
+                                    html.Div(children=[
+                                        html.Div([
+                                            html.Label(['X',html.Sub('min')]),dcc.Input(id='Xmin_value', type='text', value=str(config.xMin), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['X',html.Sub('max')]),dcc.Input(id='Xmax_value', type='text', value=str(config.xMax), style={'margin-left':'8px','margin-right':'8px'}),
                                             ],
-                                            value='lin',
-                                            labelStyle={'display': 'inline-block','padding-right':'10px'}
-                                        ) 
-                                   ]),
-                               html.Div(children=[
-                                   html.Label('Select Graph Plot: '),
-                                   dcc.Dropdown(
-                                            id='op-plot-select',
-                                            options=[
-                                                    {'label': 'PDF-UP Absolute', 'value': 'PUA'},
-                                                    {'label': 'PDF-DOWN Absolute', 'value': 'PDA'},
-                                                    {'label': 'PDF-UP Ratio', 'value': 'PUR'},
-                                                    {'label': 'PDF-DOWN Ratio', 'value': 'PDR'}
-                                                    ],
-                                            value='PUA'
-                                            )
-                                   ]),
+                                            style={'display':'inline-block','padding-right':'10px','padding-bottom':'10px'},
+                                            ),
+                                        html.Div([
+                                            html.Label(['Y',html.Sub('min')]),dcc.Input(id='Ymin_value', type='text', value=str(config.yMin), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['Y',html.Sub('max')]),dcc.Input(id='Ymax_value', type='text', value=str(config.yMax), style={'margin-left':'8px','margin-right':'8px'}),
+                                            ],
+                                            style={'display': 'inline-block','padding-right':'10px','padding-bottom':'10px'},
+                                            ),
+                                        ]),
+                                    html.Div(children=[
+                                       dcc.RadioItems(
+                                                id = 'scale-radio-buttons',
+                                                options=[
+                                                    {'label': 'Linear', 'value': 'lin'},
+                                                    {'label': 'Log', 'value': 'log'}
+                                                ],
+                                                value='lin',
+                                                labelStyle={'display': 'inline-block','padding-right':'10px'}
+                                            ) 
+                                       ]),
+                                    html.Div(children=[
+                                       html.Label('Select Graph Plot: '),
+                                       dcc.Dropdown(
+                                                id='op-plot-select',
+                                                options=[
+                                                        {'label': 'PDF-UP Absolute', 'value': 'PUA'},
+                                                        {'label': 'PDF-DOWN Absolute', 'value': 'PDA'},
+                                                        {'label': 'PDF-UP Ratio', 'value': 'PUR'},
+                                                        {'label': 'PDF-DOWN Ratio', 'value': 'PDR'}
+                                                        ],
+                                                value='PUA'
+                                                )
+                                           ]),
+                                    ]),
                                 ]),
-                        width=4,
+                        width=5,
                         ),
                 ])
         ],
@@ -295,7 +313,6 @@ app.layout = html.Div(children=[
         navbar,
         body,
 ])
-
 
 # add callback for toggling the collapse on small screens
 @app.callback(
@@ -328,7 +345,6 @@ def toggle_modal(n1, n2, n3, updateSampleValue, updateNoiseMin, updateNoiseMax, 
         return not is_open
     return is_open
 
-
 #--- Update Config Submit
 def updateConfig(updateSampleValue, updateNoiseMin, updateNoiseMax):
     config.setNOISE_MIN(int(updateNoiseMin))
@@ -344,6 +360,7 @@ def updateConfig(updateSampleValue, updateNoiseMin, updateNoiseMax):
 #--- Update Config Submit
 def updateUIcomponents():
     return True
+
 #--- display selected points
 @app.callback(
     [Output('selected-data', 'data'),
@@ -352,8 +369,9 @@ def updateUIcomponents():
     [Input('g1', 'selectedData'),
      Input('ucert_value','value'),
      Input('f-value-slider','value'),
-     Input('reset-button', 'n_clicks')])
-def update_selected_data(selectedData, uncertainValue, noiseValue, reset_clicks):
+     Input('reset-button', 'n_clicks'),
+     Input('xsec-data','value')])
+def update_selected_data(selectedData, uncertainValue, noiseValue, reset_clicks, selectSample):
     #-- check if reset is clicked
     #--- validating the context to check which button is clicked
     ctx = dash.callback_context
@@ -369,8 +387,14 @@ def update_selected_data(selectedData, uncertainValue, noiseValue, reset_clicks)
     if button_id == 'reset-button':
         return [{}],[]
     #--- parsing the selected data
-    else : 
-        #print(selectedData)
+    else :
+        #--- modify the data based on selected sample
+        print('--> (RUNLOG) - sample to be selected - ',selectSample)
+        global data, trueBar
+        trueBar = np.load(config.parPath)
+        data['obs_p'] = obs_p[selectSample,:] #--- currently taking only one sample
+        data['obs_n'] = obs_n[selectSample,:] #--- currently taking only one sample 
+        trueBar = trueBar[selectSample]
         s_data = json.dumps(selectedData, indent=2)
         if s_data != 'null':
             #--- set the data_Selected falg to true
@@ -397,7 +421,7 @@ def update_selected_data(selectedData, uncertainValue, noiseValue, reset_clicks)
                 #  ' | ', data.loc[point['pointIndex'], 'obs_n'], ' | ', data.loc[point['pointIndex'], 'err_obs_p'], 
                 #  ' | ', data.loc[point['pointIndex'], 'err_obs_n'], ' | ', data.loc[point['pointIndex'], 'err_obs_p_mod'],
                 #  ' | ', data.loc[point['pointIndex'], 'err_obs_n_mod'], ' | ')
-            print('---> (RUNLOG) - Total ',len(data[data['is_selected'] == True]),' samples selected...')
+            print('--> (RUNLOG) - Total ',len(data[data['is_selected'] == True]),' samples selected...')
             selectedDataDF = data[data['is_selected'] == True]
             selectedDataDF = selectedDataDF[['X','Q2','obs_p','obs_n','err_obs_p','err_obs_n','err_obs_p_mod','err_obs_n_mod']]
             return selectedDataDF.to_dict('records'),[{"name":i,"id":i} for i in selectedDataDF.columns]
@@ -423,7 +447,7 @@ def reset_data_dropdown(n_clicks):
     data['err_obs_n_mod'] = 0
     return ""
 
-#--- callback for Reset to refresh the grap
+#--- callback for Reset to refresh the graph
 
 
 #--- callback after submit

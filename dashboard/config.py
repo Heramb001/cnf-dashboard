@@ -31,6 +31,11 @@ class Config:
                  pdfAbsoluteDown = 'PDF-Down Absolute Plot',
                  pdfRatioUp = 'PDF-Up Ratio Plot',
                  pdfRatioDown = 'PDF-Down Ratio Plot',
+                 #--- Output Graph axes
+                 xmin = 0,
+                 xmax = 10,
+                 ymin = -1,
+                 ymax = 1,
                  ):
         #--- Logo of dashboard
         self.__CNF_LOGO = CNF_LOGO
@@ -56,7 +61,11 @@ class Config:
         self.__pdfAbsoluteDown = pdfAbsoluteDown
         self.__pdfRatioUp = pdfRatioUp
         self.__pdfRatioDown = pdfRatioDown
-        
+        #--- Output Graph axes
+        self.__xmin = xmin
+        self.__xmax = xmax
+        self.__ymin = ymin
+        self.__ymax = ymax
     #--- getters
     @property
     def CNF_LOGO(self):
@@ -126,6 +135,22 @@ class Config:
     def pdfRatioDown(self):
         return self.__pdfRatioDown
     
+    @property
+    def xMin(self):
+        return self.__xmin
+    
+    @property
+    def xMax(self):
+        return self.__xmax
+    
+    @property
+    def yMin(self):
+        return self.__ymin
+    
+    @property
+    def yMax(self):
+        return self.__ymax
+    
     #--- setters
     def setDEFAULT_SAMPLE(self, val):
             self.__DEFAULT_SAMPLE = val
@@ -135,3 +160,4 @@ class Config:
             
     def setNOISE_MAX(self, val):
             self.__NOISE_MAX = val
+            

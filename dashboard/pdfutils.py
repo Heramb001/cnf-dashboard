@@ -50,6 +50,7 @@ def calculate_pdf(data_par, pred = True):
             u.append(get_pdf(x,Q2,'u'))
             d.append(get_pdf(x,Q2,'d'))
     else:                        #--- For False, we are calculating pdf for Ground Truth
+       print('--> (RUNLOG) - calculating PDF for ground Truth')
        set_params(data_par)
        u = get_pdf(x,Q2,'u')
        d = get_pdf(x,Q2,'d')       
