@@ -255,14 +255,18 @@ body = dbc.Container([
                                 html.Div([  
                                     html.Div(children=[
                                         html.Div([
-                                            html.Label(['X',html.Sub('min')]),dcc.Input(id='Xmin_value', type='text', value=str(config.xMin), style={'margin-left':'8px','margin-right':'8px'}),
-                                            html.Label(['X',html.Sub('max')]),dcc.Input(id='Xmax_value', type='text', value=str(config.xMax), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['X',html.Sub('min')]),
+                                            dcc.Input(id='Xmin_value', type='text', value=str(config.xMin), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['X',html.Sub('max')]),
+                                            dcc.Input(id='Xmax_value', type='text', value=str(config.xMax), style={'margin-left':'8px','margin-right':'8px'}),
                                             ],
                                             style={'display':'inline-block','padding-right':'10px','padding-bottom':'10px'},
                                             ),
                                         html.Div([
-                                            html.Label(['Y',html.Sub('min')]),dcc.Input(id='Ymin_value', type='text', value=str(config.yMin), style={'margin-left':'8px','margin-right':'8px'}),
-                                            html.Label(['Y',html.Sub('max')]),dcc.Input(id='Ymax_value', type='text', value=str(config.yMax), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['Y',html.Sub('min')]),
+                                            dcc.Input(id='Ymin_value', type='text', value=str(config.yMin), style={'margin-left':'8px','margin-right':'8px'}),
+                                            html.Label(['Y',html.Sub('max')]),
+                                            dcc.Input(id='Ymax_value', type='text', value=str(config.yMax), style={'margin-left':'8px','margin-right':'8px'}),
                                             ],
                                             style={'display': 'inline-block','padding-right':'10px','padding-bottom':'10px'},
                                             ),
@@ -455,15 +459,17 @@ def reset_data_dropdown(n_clicks):
         Output('output-graph-g2', 'figure'),
         [Input('submit-button', 'n_clicks'), #--- submit-button
          Input('reset-button', 'n_clicks'),  #--- Reset Button
-         Input('scale-radio-buttons', 'value'),
-         Input('op-plot-select', 'value'),
+         Input('Xmin_value', 'value'),Input('Xmax_value', 'value'), #--- Xmin,Xmax
+         Input('Ymin_value', 'value'),Input('Ymax_value', 'value'), #--- Ymin,Ymax
+         Input('scale-radio-buttons', 'value'), #--- Scale Radio
+         Input('op-plot-select', 'value'), #--- Plot Select
          ],
         [
          State('selected-data', 'data'),
          State('ucert_value','value'),
          State('model-select','value'),
          State('f-value-slider', 'value')])
-def update_outputGraph(submit_clicks, reset_clicks, scale_value, plotDisplay, tabledata, uncertainity_value, model_select, f_value):
+def update_outputGraph(submit_clicks, reset_clicks, xMin, xMax, yMin, yMax, scale_value, plotDisplay, tabledata, uncertainity_value, model_select, f_value):
     #--- validating the context to check which button is clicked
     ctx = dash.callback_context
     if not ctx.triggered:
@@ -518,7 +524,11 @@ def update_outputGraph(submit_clicks, reset_clicks, scale_value, plotDisplay, ta
             #--- get all the plot related Data
             yTrue, upperBound, yPred, lowerBound, plotTitle = getPlotData(plotDisplay, pdf_true_dict, pdf_pred_dict)
             #--- generate figure
-            return generatePDFplots(pdf_true_dict['x-axis'], yTrue, upperBound, yPred, lowerBound, plotTitle, scale_value)
+            outputGraph = generatePDFplots(pdf_true_dict['x-axis'], yTrue, upperBound, yPred, lowerBound, plotTitle, scale_value)
+            if plotDisplay == 'PUR' or plotDisplay == 'PDR' :
+                outputGraph.update_xaxes(range=[float(xMin),float(xMax)])
+                outputGraph.update_yaxes(range=[float(yMin),float(yMax)])
+            return outputGraph
         else:
             return go.Figure(
                 data=[],
