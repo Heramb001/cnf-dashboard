@@ -33,9 +33,9 @@ class Config:
                  pdfRatioDown = 'PDF-Down Ratio Plot',
                  #--- Output Graph axes
                  xmin = 0,
-                 xmax = 10,
-                 ymin = -1,
-                 ymax = 1,
+                 xmax = 1,
+                 ymin = 0,
+                 ymax = 2.5,
                  ):
         #--- Logo of dashboard
         self.__CNF_LOGO = CNF_LOGO
