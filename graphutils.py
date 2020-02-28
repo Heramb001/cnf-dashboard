@@ -92,6 +92,7 @@ def generatePDFplots(x,yTrue,yPredUpper,yPred,yPredLower,graphTitle, yAxisType):
     predLayout = go.Layout(
                 #yaxis=dict(title='Wind speed (m/s)'),
                 xaxis_title="X",
+                yaxis_title="pdf",
                 yaxis_type = 'linear' if yAxisType == 'lin' else 'log',
                 title=dict(
                         text = graphTitle,

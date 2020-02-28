@@ -27,10 +27,10 @@ class Config:
                  obsnPath = "data/obs_n.npy",
                  parPath = "data/par.npy",
                  #--- Plot titles
-                 pdfAbsoluteUp = 'PDF-Up Absolute Plot',
-                 pdfAbsoluteDown = 'PDF-Down Absolute Plot',
-                 pdfRatioUp = 'PDF-Up Ratio Plot',
-                 pdfRatioDown = 'PDF-Down Ratio Plot',
+                 pdfAbsoluteUp = 'X vs Xu',
+                 pdfAbsoluteDown = 'X vs Xd',
+                 pdfRatioUp = 'X vs Xd Ratio Plot',
+                 pdfRatioDown = 'X vs Xd Ratio Plot',
                  #--- Output Graph axes
                  xmin = 0,
                  xmax = 1,

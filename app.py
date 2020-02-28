@@ -140,22 +140,50 @@ navbar = html.Header(dbc.Navbar(
 #--- body
 body = dbc.Container([
         dbc.Row([
-                dbc.Col(
+                #--- Input Graph
+                dbc.Col([
                         html.Div(children=[
                                 #--- Label
-                                html.H5('Parameters', className='h5-cnf'),
-                                
+                                html.H5('DIS Kinematics', className='h5-cnf'),
+                                html.Div(id='input-graph-div',
+                                         children=[
+                                             dcc.Graph(id='g1',
+                                                       figure = go.Figure(
+                                                     data=go.Scattergl(
+                                                         x=data['X'],
+                                                         y=data['Q2'],
+                                                         mode='markers',
+                                                         ),
+                                                     layout=go.Layout(
+                                                         #title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
+                                                         xaxis_title="X",
+                                                         yaxis_title="Q<sup>2</sup> (GeV<sup>2</sup>)",
+                                                         )
+                                                     )
+                                                       )
+                                                 ]),
+                                html.Div([                                  
+                                    ]),
+                                ]),
+                        html.Div(children=[
+                                #--- Label
+                                html.H5('Setup', className='h5-cnf'),
+                                #--- Select Data Sample
+                                html.Div([
+                                        html.Label(['Select Data sample']),
+                                        dcc.Input(id='xsec-data', type='number', min=0, max=len(obs_p)-1,value=config.DEFAULT_SAMPLE, style={'margin-left':'8px','margin-right':'8px'}),
+                                        ]),
                                 #--- Uncertainity Column
                                 html.Div(className='user-input-cnf',
                                     children=[
-                                        html.Label('Uncertainity Value '),
+                                        html.Label('Default Relative Uncertainity '),
                                         dcc.Input(id='ucert_value', type='text', value=str(config.DEFAULT_UNCERTAINITY), style={'margin-left':'8px'})]),
                                 #--- Slider
                                 html.Div(
                                     className='slider-box',
                                     children=[
                                     html.Div(children=[
-                                    html.Label('F-value (Noise) '),
+                                    html.Label('Uncertainity Rescaling Factor '),
                                     dcc.Input(id='f-value-slider', type='text', value=str(config.DEFAULT_NOISE), style={'margin-left':'8px'})]),    
                                     html.Div(id='slider-output-container',
                                                  children=[
@@ -163,7 +191,9 @@ body = dbc.Container([
                                         ])
                                 ]),
                                 #--- Display Selected values
-                                html.Div(children=[
+                                html.Div(
+                                    style={'display': 'none'},
+                                    children=[
                                         html.P('Selected Data'),
                                         #html.Pre(id='selected-data')
                                         dash_table.DataTable(id='selected-data',
@@ -180,7 +210,7 @@ body = dbc.Container([
                                         ]),
                                 #--- Dropdown
                                 html.Div(children=[
-                                    html.Label('Select Neural Network Model '),
+                                    html.Label('Select Inverse Function '),
                                     dcc.Dropdown(
                                             id='model-select',
                                             options=[
@@ -196,45 +226,14 @@ body = dbc.Container([
                                     #--- Reset Button
                                     html.Button(id='reset-button', className='cnf-button', n_clicks=0, children='Reset'),
                                     ])
-                                ]),
-                        width=3,
-                        ),
-                #--- Input Graph
-                dbc.Col(
-                        html.Div(children=[
-                                #--- Label
-                                html.H5('Input Graph', className='h5-cnf'),
-                                html.Div(id='input-graph-div',
-                                         children=[
-                                             dcc.Graph(id='g1',
-                                                       figure = go.Figure(
-                                                     data=go.Scattergl(
-                                                         x=data['X'],
-                                                         y=data['Q2'],
-                                                         mode='markers',
-                                                         ),
-                                                     layout=go.Layout(
-                                                         #title=go.layout.Title(text="Input Data Graph 1 (X,Q2)"),
-                                                         xaxis_title="X",
-                                                         yaxis_title="Q<sup>2</sup>",
-                                                         )
-                                                     )
-                                                       )
-                                                 ]),
-                                html.Div([
-                                    html.Div([
-                                        html.Label(['Select data sample']),
-                                        dcc.Input(id='xsec-data', type='number', min=0, max=len(obs_p)-1,value=config.DEFAULT_SAMPLE, style={'margin-left':'8px','margin-right':'8px'}),
-                                        ])
-                                    ]),
-                                ]),
-                        width=4,
+                                ])],
+                        width=6,
                         ),
                 #--- Output Graph
                 dbc.Col(
                         html.Div(children=[
                                 #--- Label
-                                html.H5('Output Graph', className='h5-cnf'),
+                                html.H5('PDF', className='h5-cnf'),
                                 html.Div(id='output-graph-div',
                                          children=[
                                              dcc.Loading(
@@ -287,17 +286,17 @@ body = dbc.Container([
                                        dcc.Dropdown(
                                                 id='op-plot-select',
                                                 options=[
-                                                        {'label': 'PDF-UP Absolute', 'value': 'PUA'},
-                                                        {'label': 'PDF-DOWN Absolute', 'value': 'PDA'},
-                                                        {'label': 'PDF-UP Ratio', 'value': 'PUR'},
-                                                        {'label': 'PDF-DOWN Ratio', 'value': 'PDR'}
+                                                        {'label': 'X vs Xu', 'value': 'PUA'},
+                                                        {'label': 'X vs Xd', 'value': 'PDA'},
+                                                        {'label': 'X vs Xu Ratio', 'value': 'PUR'},
+                                                        {'label': 'X vs Xd Ratio', 'value': 'PDR'}
                                                         ],
                                                 value='PUA'
                                                 )
                                            ]),
                                     ]),
                                 ]),
-                        width=5,
+                        width=6,
                         ),
                 ])
         ],
@@ -482,7 +481,7 @@ def update_outputGraph(submit_clicks, reset_clicks, xMin, xMax, yMin, yMax, scal
              data=[],
              layout=go.Layout(
                  title = 'No Input From User',
-                 xaxis_title="Parameters",
+                 xaxis_title="X",
                  )
              )
     
@@ -492,7 +491,7 @@ def update_outputGraph(submit_clicks, reset_clicks, xMin, xMax, yMin, yMax, scal
              data=[],
              layout=go.Layout(
                  title = 'Graph Data Reset',
-                 xaxis_title="Parameters",
+                 xaxis_title="X",
                  )
              )
     
@@ -525,7 +524,7 @@ def update_outputGraph(submit_clicks, reset_clicks, xMin, xMax, yMin, yMax, scal
             yTrue, upperBound, yPred, lowerBound, plotTitle = getPlotData(plotDisplay, pdf_true_dict, pdf_pred_dict)
             #--- generate figure
             outputGraph = generatePDFplots(pdf_true_dict['x-axis'], yTrue, upperBound, yPred, lowerBound, plotTitle, scale_value)
-            if plotDisplay == 'PUR' or plotDisplay == 'PDR' :
+            if plotDisplay == 'PUR' or plotDisplay == 'PDR' or plotDisplay == 'PUA' or plotDisplay == 'PDA' :
                 outputGraph.update_xaxes(range=[float(xMin),float(xMax)])
                 outputGraph.update_yaxes(range=[float(yMin),float(yMax)])
             return outputGraph
@@ -552,5 +551,9 @@ def update_outputGraph(submit_clicks, reset_clicks, xMin, xMax, yMin, yMax, scal
 if __name__ == '__main__':
     app.run_server(debug = False)
     
-
-
+'''
+if (xMin != '' or xMax != '' or yMin != '' or yMax != ''):
+                    print('--')
+                    #--- do nothing
+                else:
+'''
