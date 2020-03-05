@@ -1,4 +1,5 @@
 #--- ignore the redundant file
-dashboard/redundantCode.py
-dashboard/.ipynb_checkpoints
-dashboard/__pycache__
+cnf-dashboard-v1/redundantCode.py
+cnf-dashboard-v1/.ipynb_checkpoints
+cnf-dashboard-v1/__pycache__
+cnf-dashboard-demo/__pycache__
